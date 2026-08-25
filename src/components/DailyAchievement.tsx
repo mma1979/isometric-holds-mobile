@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
-import { Flame, Award, Target, Activity } from 'lucide-react';
+import { StyleSheet, View, Text } from 'react-native';
+import { Flame, Award, Target, Activity } from 'lucide-react-native';
 import { useLogs } from '../store';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { theme } from '../theme';
 
 export default function DailyAchievement() {
   const { logs } = useLogs();
@@ -10,9 +12,9 @@ export default function DailyAchievement() {
     if (!logs.length) return { streak: 0, todayCompleted: false, totalDays: 0, totalCalories: 0 };
 
     // Get unique sorted dates based on local time
-    const uniqueDays = Array.from(new Set(logs.map(log => 
-      format(parseISO(log.date), 'yyyy-MM-dd')
-    ))).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    const uniqueDays = Array.from(
+      new Set(logs.map((log) => format(parseISO(log.date), 'yyyy-MM-dd')))
+    ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const yesterdayStr = format(new Date(Date.now() - 86400000), 'yyyy-MM-dd');
@@ -23,7 +25,7 @@ export default function DailyAchievement() {
     if (uniqueDays[0] === todayStr || uniqueDays[0] === yesterdayStr) {
       streak = 1;
       let currentDate = parseISO(uniqueDays[0]);
-      
+
       for (let i = 1; i < uniqueDays.length; i++) {
         const nextDate = parseISO(uniqueDays[i]);
         if (differenceInDays(currentDate, nextDate) === 1) {
@@ -39,59 +41,156 @@ export default function DailyAchievement() {
       streak,
       todayCompleted,
       totalDays: uniqueDays.length,
-      totalCalories: Math.round(logs.reduce((acc, log) => acc + ((log.sets * log.durationReps) / 60) * 5, 0))
+      totalCalories: Math.round(
+        logs.reduce((acc, log) => acc + ((log.sets * log.durationReps) / 60) * 5, 0)
+      ),
     };
   }, [logs]);
 
   return (
-    <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="flex items-center gap-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5 transition-colors hover:border-gray-700">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors duration-500 ${stats.todayCompleted ? 'bg-green-500/20 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'bg-gray-800 text-gray-500'}`}>
-          <Target className="h-6 w-6" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-gray-400">Daily Session</p>
-          <p className="text-xl font-bold text-white">
-            {stats.todayCompleted ? 'Completed' : 'Pending'}
-          </p>
-        </div>
-      </div>
+    <View style={styles.container}>
+      <View style={styles.grid}>
+        {/* Daily Session Card */}
+        <View style={styles.card}>
+          <View
+            style={[
+              styles.iconWrapper,
+              stats.todayCompleted ? styles.iconWrapperSuccess : styles.iconWrapperDefault,
+            ]}
+          >
+            <Target
+              size={22}
+              color={stats.todayCompleted ? theme.colors.success : theme.colors.textSubtle}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.label}>Daily Session</Text>
+            <Text style={styles.value}>
+              {stats.todayCompleted ? 'Completed' : 'Pending'}
+            </Text>
+          </View>
+        </View>
 
-      <div className="flex items-center gap-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5 transition-colors hover:border-gray-700">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors duration-500 ${stats.streak > 0 ? 'bg-orange-500/20 text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-gray-800 text-gray-500'}`}>
-          <Flame className="h-6 w-6" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-gray-400">Current Streak</p>
-          <p className="text-xl font-bold text-white">
-            {stats.streak} {stats.streak === 1 ? 'Day' : 'Days'}
-          </p>
-        </div>
-      </div>
+        {/* Streak Card */}
+        <View style={styles.card}>
+          <View
+            style={[
+              styles.iconWrapper,
+              stats.streak > 0 ? styles.iconWrapperWarning : styles.iconWrapperDefault,
+            ]}
+          >
+            <Flame
+              size={22}
+              color={stats.streak > 0 ? theme.colors.warning : theme.colors.textSubtle}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.label}>Current Streak</Text>
+            <Text style={styles.value}>
+              {stats.streak} {stats.streak === 1 ? 'Day' : 'Days'}
+            </Text>
+          </View>
+        </View>
 
-      <div className="flex items-center gap-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5 transition-colors hover:border-gray-700">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors duration-500 ${stats.totalDays > 0 ? 'bg-yellow-500/20 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-gray-800 text-gray-500'}`}>
-          <Award className="h-6 w-6" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-gray-400">Total Training Days</p>
-          <p className="text-xl font-bold text-white">
-            {stats.totalDays} {stats.totalDays === 1 ? 'Day' : 'Days'}
-          </p>
-        </div>
-      </div>
+        {/* Total Training Days */}
+        <View style={styles.card}>
+          <View
+            style={[
+              styles.iconWrapper,
+              stats.totalDays > 0 ? styles.iconWrapperPrimary : styles.iconWrapperDefault,
+            ]}
+          >
+            <Award
+              size={22}
+              color={stats.totalDays > 0 ? theme.colors.primary : theme.colors.textSubtle}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.label}>Training Days</Text>
+            <Text style={styles.value}>
+              {stats.totalDays} {stats.totalDays === 1 ? 'Day' : 'Days'}
+            </Text>
+          </View>
+        </View>
 
-      <div className="flex items-center gap-4 rounded-2xl border border-gray-800 bg-gray-900/50 p-5 transition-colors hover:border-gray-700">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors duration-500 ${stats.totalCalories > 0 ? 'bg-blue-500/20 text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-gray-800 text-gray-500'}`}>
-          <Activity className="h-6 w-6" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-gray-400">Total Calories</p>
-          <p className="text-xl font-bold text-white">
-            {stats.totalCalories} kcal
-          </p>
-        </div>
-      </div>
-    </div>
+        {/* Total Calories */}
+        <View style={styles.card}>
+          <View
+            style={[
+              styles.iconWrapper,
+              stats.totalCalories > 0 ? styles.iconWrapperInfo : styles.iconWrapperDefault,
+            ]}
+          >
+            <Activity
+              size={22}
+              color={stats.totalCalories > 0 ? theme.colors.info : theme.colors.textSubtle}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.label}>Total Calories</Text>
+            <Text style={styles.value}>{stats.totalCalories} kcal</Text>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: theme.spacing.lg,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  card: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: theme.spacing.md,
+  },
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.sm,
+  },
+  iconWrapperDefault: {
+    backgroundColor: theme.colors.cardLight,
+  },
+  iconWrapperSuccess: {
+    backgroundColor: theme.colors.successBg,
+  },
+  iconWrapperWarning: {
+    backgroundColor: theme.colors.warningBg,
+  },
+  iconWrapperPrimary: {
+    backgroundColor: theme.colors.primaryBg,
+  },
+  iconWrapperInfo: {
+    backgroundColor: theme.colors.infoBg,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.textMuted,
+    marginBottom: 2,
+  },
+  value: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+});

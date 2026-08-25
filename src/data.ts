@@ -1,5 +1,14 @@
 import { Exercise } from './types';
 
+export const exerciseImages: Record<string, any> = {
+  'iron-bridge': require('../assets/images/1-iron-bridge.jpg'),
+  'wall-sit': require('../assets/images/2-wall-set.jpg'),
+  'bear-crawl-hold': require('../assets/images/3-bear-crawl.jpg'),
+  'horse-stance': require('../assets/images/4-horse-stance.jpg'),
+  'hollow-body-hold': require('../assets/images/5-hollow-body.jpg'),
+  'bottom-push-up-hold': require('../assets/images/6-bottom-push-up.jpg'),
+};
+
 export const exercises: Exercise[] = [
   {
     id: 'iron-bridge',
@@ -77,7 +86,7 @@ export const exercises: Exercise[] = [
       'Knees bent to 90 degrees above hips.',
       'Arms extended overhead.',
       'Hold and breathe.',
-      'DO NOT KNEES MENT, KNEES BENT ONLY.'
+      'DO NOT ARCH BACK, KNEES BENT ONLY.'
     ],
     progression: {
       week1: '15 sec, 3 sets (Knees bent)',

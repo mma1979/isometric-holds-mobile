@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { Play, Pause, RotateCcw, CheckCircle2 } from 'lucide-react-native';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { theme } from '../theme';
 
 interface StopwatchProps {
   onUseTime: (seconds: number) => void;
@@ -8,36 +11,48 @@ interface StopwatchProps {
 export default function Stopwatch({ onUseTime }: StopwatchProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [time, setTime] = useState(0); // Time in milliseconds
-  const lastUpdateRef = useRef<number>(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const accumulatedTimeRef = useRef<number>(0);
 
   useEffect(() => {
-    let animationFrameId: number;
-
-    const updateTimer = () => {
-      const now = performance.now();
-      const delta = now - lastUpdateRef.current;
-      setTime((prevTime) => prevTime + delta);
-      lastUpdateRef.current = now;
-      animationFrameId = requestAnimationFrame(updateTimer);
-    };
-
     if (isRunning) {
-      lastUpdateRef.current = performance.now();
-      animationFrameId = requestAnimationFrame(updateTimer);
+      activateKeepAwakeAsync('stopwatch');
+      startTimeRef.current = Date.now();
+      intervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - startTimeRef.current;
+        setTime(accumulatedTimeRef.current + elapsed);
+      }, 50);
+    } else {
+      deactivateKeepAwake('stopwatch');
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
 
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => {
+      deactivateKeepAwake('stopwatch');
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isRunning]);
 
-  const toggleTimer = () => setIsRunning(!isRunning);
+  const toggleTimer = () => {
+    if (isRunning) {
+      accumulatedTimeRef.current = time;
+      setIsRunning(false);
+    } else {
+      setIsRunning(true);
+    }
+  };
 
   const resetTimer = () => {
     setIsRunning(false);
+    accumulatedTimeRef.current = 0;
     setTime(0);
   };
 
   const handleUseTime = () => {
-    // Convert ms to seconds and round to nearest whole second
     onUseTime(Math.round(time / 1000));
   };
 
@@ -49,45 +64,131 @@ export default function Stopwatch({ onUseTime }: StopwatchProps) {
   const formatUnit = (unit: number) => unit.toString().padStart(2, '0');
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-6 flex flex-col items-center justify-center">
-      <div className="mb-2 text-sm font-medium text-gray-400">Isometric Hold Timer</div>
-      <div className="mb-6 font-mono text-5xl font-bold tracking-tight text-white tabular-nums">
-        {formatUnit(minutes)}:{formatUnit(seconds)}
-        <span className="text-3xl text-gray-500">.{formatUnit(milliseconds)}</span>
-      </div>
-      
-      <div className="flex w-full items-center justify-center gap-4">
-        <button
-          onClick={resetTimer}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-gray-400 transition-colors hover:bg-gray-700 hover:text-white"
-          title="Reset"
+    <View style={styles.container}>
+      <Text style={styles.title}>Isometric Hold Timer</Text>
+
+      <View style={styles.timeDisplay}>
+        <Text style={styles.timeMain}>
+          {formatUnit(minutes)}:{formatUnit(seconds)}
+        </Text>
+        <Text style={styles.timeSub}>.{formatUnit(milliseconds)}</Text>
+      </View>
+
+      <View style={styles.controls}>
+        <TouchableOpacity
+          onPress={resetTimer}
+          style={styles.secondaryButton}
+          activeOpacity={0.7}
         >
-          <RotateCcw className="h-5 w-5" />
-        </button>
-        
-        <button
-          onClick={toggleTimer}
-          className={`flex h-16 w-16 items-center justify-center rounded-full text-gray-950 transition-transform active:scale-95 ${
-            isRunning ? 'bg-red-500 hover:bg-red-400' : 'bg-yellow-500 hover:bg-yellow-400'
-          }`}
-          title={isRunning ? "Pause" : "Start"}
+          <RotateCcw size={20} color={theme.colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={toggleTimer}
+          style={[
+            styles.primaryButton,
+            isRunning ? styles.pauseButton : styles.playButton,
+          ]}
+          activeOpacity={0.8}
         >
           {isRunning ? (
-            <Pause className="h-6 w-6 fill-current" />
+            <Pause size={28} color={theme.colors.text} fill={theme.colors.text} />
           ) : (
-            <Play className="h-6 w-6 ml-1 fill-current" />
+            <Play
+              size={28}
+              color={theme.colors.primaryText}
+              fill={theme.colors.primaryText}
+              style={{ marginLeft: 3 }}
+            />
           )}
-        </button>
-        
-        <button
-          onClick={handleUseTime}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleUseTime}
           disabled={time === 0}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-gray-400 transition-colors hover:bg-gray-700 hover:text-green-400 disabled:opacity-50 disabled:hover:bg-gray-800 disabled:hover:text-gray-400"
-          title="Use this time in log"
+          style={[
+            styles.secondaryButton,
+            time === 0 && styles.disabledButton,
+          ]}
+          activeOpacity={0.7}
         >
-          <CheckCircle2 className="h-5 w-5" />
-        </button>
-      </div>
-    </div>
+          <CheckCircle2
+            size={22}
+            color={time === 0 ? theme.colors.textSubtle : theme.colors.success}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textMuted,
+    marginBottom: theme.spacing.sm,
+  },
+  timeDisplay: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: theme.spacing.lg,
+  },
+  timeMain: {
+    fontSize: 44,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text,
+    letterSpacing: -1,
+  },
+  timeSub: {
+    fontSize: 26,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.textSubtle,
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  secondaryButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.cardLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disabledButton: {
+    opacity: 0.4,
+  },
+  primaryButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  playButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  pauseButton: {
+    backgroundColor: theme.colors.error,
+  },
+});

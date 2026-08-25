@@ -1,31 +1,43 @@
 import React from 'react';
+import { StyleSheet, View, Image, ImageStyle, StyleProp, ViewStyle } from 'react-native';
+import { exerciseImages } from '../data';
+import { theme } from '../theme';
 
 interface ExerciseGraphicProps {
   exerciseId: string;
-  className?: string;
+  style?: StyleProp<ViewStyle>;
+  imageStyle?: StyleProp<ImageStyle>;
+  resizeMode?: 'contain' | 'cover';
 }
 
-export default function ExerciseGraphic({ exerciseId, className = '' }: ExerciseGraphicProps) {
-  const images: Record<string, string> = {
-    'iron-bridge': './1-iron-bridge.jpg',
-    'wall-sit': './2-wall-set.jpg',
-    'bear-crawl-hold': './3-bear-crawl.jpg',
-    'horse-stance': './4-horse-stance.jpg',
-    'hollow-body-hold': './5-hollow-body.jpg',
-    'bottom-push-up-hold': './6-bottom-push-up.jpg',
-  };
-
-  const imageSrc = images[exerciseId] || './1-iron-bridge.jpg';
+export default function ExerciseGraphic({
+  exerciseId,
+  style,
+  imageStyle,
+  resizeMode = 'contain',
+}: ExerciseGraphicProps) {
+  const imageSource = exerciseImages[exerciseId] || exerciseImages['iron-bridge'];
 
   return (
-    <div 
-      className={`relative bg-gray-900 overflow-hidden flex items-center justify-center ${className}`}
-    >
-      <img 
-        src={imageSrc}
-        alt={exerciseId}
-        className="absolute inset-0 w-full h-full object-contain transition-transform duration-700"
+    <View style={[styles.container, style]}>
+      <Image
+        source={imageSource}
+        style={[styles.image, imageStyle]}
+        resizeMode={resizeMode}
       />
-    </div>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: theme.colors.card,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+});
