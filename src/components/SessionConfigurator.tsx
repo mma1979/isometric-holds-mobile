@@ -16,7 +16,7 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react-native';
-import { exercises } from '../data';
+import { exercises, practiceSets } from '../data';
 import { SessionConfigItem } from '../types';
 import { theme } from '../theme';
 
@@ -74,6 +74,19 @@ export default function SessionConfigurator({ onStart, onCancel }: SessionConfig
       ...prev,
       [id]: { ...prev[id], selected: !prev[id].selected },
     }));
+  };
+
+  const toggleSelectSet = (exerciseIds: string[]) => {
+    const allSelected = exerciseIds.every((id) => configs[id]?.selected);
+    setConfigs((prev) => {
+      const updated = { ...prev };
+      exerciseIds.forEach((id) => {
+        if (updated[id]) {
+          updated[id] = { ...updated[id], selected: !allSelected };
+        }
+      });
+      return updated;
+    });
   };
 
   const updateConfig = (id: string, field: 'sets' | 'duration' | 'rest', value: number) => {
@@ -150,108 +163,137 @@ export default function SessionConfigurator({ onStart, onCancel }: SessionConfig
           </TouchableOpacity>
         </View>
 
-        {/* Exercise Items List */}
+        {/* Exercise Items List Grouped by Practice Sets */}
         <View style={styles.list}>
-          {exercises.map((exercise, idx) => {
-            const config = configs[exercise.id];
-            const isSelected = config?.selected;
+          {practiceSets.map((pSet) => {
+            const setExercises = exercises.filter((ex) => pSet.exerciseIds.includes(ex.id));
+            const allSelected = setExercises.length > 0 && setExercises.every((ex) => configs[ex.id]?.selected);
 
             return (
-              <View
-                key={exercise.id}
-                style={[
-                  styles.exerciseCard,
-                  isSelected && styles.exerciseCardSelected,
-                ]}
-              >
-                <TouchableOpacity
-                  style={styles.cardHeader}
-                  onPress={() => toggleSelect(exercise.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      isSelected && styles.checkboxSelected,
-                    ]}
-                  >
-                    {isSelected && <Check size={14} color={theme.colors.primaryText} />}
-                  </View>
-
-                  <Text
-                    style={[
-                      styles.exerciseTitle,
-                      isSelected && styles.exerciseTitleSelected,
-                    ]}
-                  >
-                    <Text style={styles.exerciseIndex}>{idx + 1}. </Text>
-                    {exercise.title}
-                  </Text>
-                </TouchableOpacity>
-
-                {isSelected && (
-                  <View style={styles.configControls}>
-                    {/* Sets Control */}
-                    <View style={styles.controlItem}>
-                      <Text style={styles.controlLabel}>Sets</Text>
-                      <View style={styles.stepper}>
-                        <TouchableOpacity
-                          style={styles.stepperButton}
-                          onPress={() => updateConfig(exercise.id, 'sets', config.sets - 1)}
-                        >
-                          <Minus size={14} color={theme.colors.textMuted} />
-                        </TouchableOpacity>
-                        <Text style={styles.stepperValue}>{config.sets}</Text>
-                        <TouchableOpacity
-                          style={styles.stepperButton}
-                          onPress={() => updateConfig(exercise.id, 'sets', config.sets + 1)}
-                        >
-                          <Plus size={14} color={theme.colors.textMuted} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Duration Control */}
-                    <View style={styles.controlItem}>
-                      <Text style={styles.controlLabel}>Hold (sec)</Text>
-                      <View style={styles.stepper}>
-                        <TouchableOpacity
-                          style={styles.stepperButton}
-                          onPress={() => updateConfig(exercise.id, 'duration', config.duration - 5)}
-                        >
-                          <Minus size={14} color={theme.colors.textMuted} />
-                        </TouchableOpacity>
-                        <Text style={styles.stepperValue}>{config.duration}s</Text>
-                        <TouchableOpacity
-                          style={styles.stepperButton}
-                          onPress={() => updateConfig(exercise.id, 'duration', config.duration + 5)}
-                        >
-                          <Plus size={14} color={theme.colors.textMuted} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Rest Control */}
-                    <View style={styles.controlItem}>
-                      <Text style={styles.controlLabel}>Rest (sec)</Text>
-                      <View style={styles.stepper}>
-                        <TouchableOpacity
-                          style={styles.stepperButton}
-                          onPress={() => updateConfig(exercise.id, 'rest', config.rest - 5)}
-                        >
-                          <Minus size={14} color={theme.colors.textMuted} />
-                        </TouchableOpacity>
-                        <Text style={styles.stepperValue}>{config.rest}s</Text>
-                        <TouchableOpacity
-                          style={styles.stepperButton}
-                          onPress={() => updateConfig(exercise.id, 'rest', config.rest + 5)}
-                        >
-                          <Plus size={14} color={theme.colors.textMuted} />
-                        </TouchableOpacity>
-                      </View>
+              <View key={pSet.id} style={styles.setSection}>
+                <View style={styles.setSectionHeader}>
+                  <View style={styles.setSectionTitleContainer}>
+                    <Text style={styles.setSectionTitle}>{pSet.title}</Text>
+                    <View style={styles.setCountBadge}>
+                      <Text style={styles.setCountBadgeText}>{setExercises.length} Holds</Text>
                     </View>
                   </View>
-                )}
+                  <TouchableOpacity
+                    onPress={() => toggleSelectSet(pSet.exerciseIds)}
+                    style={styles.setToggleBtn}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.setToggleBtnText}>
+                      {allSelected ? 'Deselect Set' : 'Select All in Set'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.setCardList}>
+                  {setExercises.map((exercise, idx) => {
+                    const config = configs[exercise.id];
+                    const isSelected = config?.selected;
+
+                    return (
+                      <View
+                        key={exercise.id}
+                        style={[
+                          styles.exerciseCard,
+                          isSelected && styles.exerciseCardSelected,
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={styles.cardHeader}
+                          onPress={() => toggleSelect(exercise.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View
+                            style={[
+                              styles.checkbox,
+                              isSelected && styles.checkboxSelected,
+                            ]}
+                          >
+                            {isSelected && <Check size={14} color={theme.colors.primaryText} />}
+                          </View>
+
+                          <Text
+                            style={[
+                              styles.exerciseTitle,
+                              isSelected && styles.exerciseTitleSelected,
+                            ]}
+                          >
+                            <Text style={styles.exerciseIndex}>{idx + 1}. </Text>
+                            {exercise.title}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {isSelected && (
+                          <View style={styles.configControls}>
+                            {/* Sets Control */}
+                            <View style={styles.controlItem}>
+                              <Text style={styles.controlLabel}>Sets</Text>
+                              <View style={styles.stepper}>
+                                <TouchableOpacity
+                                  style={styles.stepperButton}
+                                  onPress={() => updateConfig(exercise.id, 'sets', config.sets - 1)}
+                                >
+                                  <Minus size={14} color={theme.colors.textMuted} />
+                                </TouchableOpacity>
+                                <Text style={styles.stepperValue}>{config.sets}</Text>
+                                <TouchableOpacity
+                                  style={styles.stepperButton}
+                                  onPress={() => updateConfig(exercise.id, 'sets', config.sets + 1)}
+                                >
+                                  <Plus size={14} color={theme.colors.textMuted} />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+
+                            {/* Duration Control */}
+                            <View style={styles.controlItem}>
+                              <Text style={styles.controlLabel}>Hold (sec)</Text>
+                              <View style={styles.stepper}>
+                                <TouchableOpacity
+                                  style={styles.stepperButton}
+                                  onPress={() => updateConfig(exercise.id, 'duration', config.duration - 5)}
+                                >
+                                  <Minus size={14} color={theme.colors.textMuted} />
+                                </TouchableOpacity>
+                                <Text style={styles.stepperValue}>{config.duration}s</Text>
+                                <TouchableOpacity
+                                  style={styles.stepperButton}
+                                  onPress={() => updateConfig(exercise.id, 'duration', config.duration + 5)}
+                                >
+                                  <Plus size={14} color={theme.colors.textMuted} />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+
+                            {/* Rest Control */}
+                            <View style={styles.controlItem}>
+                              <Text style={styles.controlLabel}>Rest (sec)</Text>
+                              <View style={styles.stepper}>
+                                <TouchableOpacity
+                                  style={styles.stepperButton}
+                                  onPress={() => updateConfig(exercise.id, 'rest', config.rest - 5)}
+                                >
+                                  <Minus size={14} color={theme.colors.textMuted} />
+                                </TouchableOpacity>
+                                <Text style={styles.stepperValue}>{config.rest}s</Text>
+                                <TouchableOpacity
+                                  style={styles.stepperButton}
+                                  onPress={() => updateConfig(exercise.id, 'rest', config.rest + 5)}
+                                >
+                                  <Plus size={14} color={theme.colors.textMuted} />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             );
           })}
@@ -490,6 +532,49 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   list: {
+    gap: 20,
+  },
+  setSection: {
+    gap: 10,
+  },
+  setSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  setSectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  setSectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  setCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.primaryBg,
+  },
+  setCountBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  setToggleBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  setToggleBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  setCardList: {
     gap: 12,
   },
   exerciseCard: {

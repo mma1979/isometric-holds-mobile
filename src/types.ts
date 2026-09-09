@@ -4,10 +4,19 @@ export interface Progression {
   week3: string;
 }
 
+export interface PracticeSet {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description: string;
+  exerciseIds: string[];
+}
+
 export interface Exercise {
   id: string;
   title: string;
   subtitle?: string;
+  practiceSetId?: string;
   steps: string[];
   progression: Progression;
   videoId: string;

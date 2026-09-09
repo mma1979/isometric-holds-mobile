@@ -1,4 +1,4 @@
-import { Exercise } from './types';
+import { Exercise, PracticeSet } from './types';
 
 export const exerciseImages: Record<string, any> = {
   'iron-bridge': require('../assets/images/1-iron-bridge.webp'),
@@ -9,9 +9,28 @@ export const exerciseImages: Record<string, any> = {
   'bottom-push-up-hold': require('../assets/images/6-bottom-push-up.webp'),
 };
 
+export const practiceSets: PracticeSet[] = [
+  {
+    id: 'shaolin-holds',
+    title: 'Shaolin Holds',
+    subtitle: 'Ancient Isometric Mastery',
+    description:
+      'The foundational 6 isometric postures designed to build immense tendon strength, core stability, and mental stillness.',
+    exerciseIds: [
+      'iron-bridge',
+      'wall-sit',
+      'bear-crawl-hold',
+      'horse-stance',
+      'hollow-body-hold',
+      'bottom-push-up-hold',
+    ],
+  },
+];
+
 export const exercises: Exercise[] = [
   {
     id: 'iron-bridge',
+    practiceSetId: 'shaolin-holds',
     title: 'Iron Bridge',
     steps: [
       'Lie flat on back.',
@@ -29,6 +48,7 @@ export const exercises: Exercise[] = [
   },
   {
     id: 'wall-sit',
+    practiceSetId: 'shaolin-holds',
     title: 'Wall Sit',
     steps: [
       'Back flat against wall.',
@@ -46,6 +66,7 @@ export const exercises: Exercise[] = [
   },
   {
     id: 'bear-crawl-hold',
+    practiceSetId: 'shaolin-holds',
     title: 'Bear Crawl Hold',
     steps: [
       'Hands under shoulders, knees under hips.',
@@ -63,6 +84,7 @@ export const exercises: Exercise[] = [
   },
   {
     id: 'horse-stance',
+    practiceSetId: 'shaolin-holds',
     title: 'Horse Stance',
     steps: [
       'Feet twice shoulder-width apart.',
@@ -80,6 +102,7 @@ export const exercises: Exercise[] = [
   },
   {
     id: 'hollow-body-hold',
+    practiceSetId: 'shaolin-holds',
     title: 'Hollow Body Hold',
     steps: [
       'Lie on back, press lower back into floor.',
@@ -97,6 +120,7 @@ export const exercises: Exercise[] = [
   },
   {
     id: 'bottom-push-up-hold',
+    practiceSetId: 'shaolin-holds',
     title: 'Bottom Push-Up Hold',
     steps: [
       'Get into push-up position.',
@@ -113,3 +137,9 @@ export const exercises: Exercise[] = [
     videoId: '2yBvA-fV_Jk', // Placeholder: Push up hold
   }
 ];
+
+export const getExercisesForSet = (setId: string): Exercise[] => {
+  const set = practiceSets.find((s) => s.id === setId);
+  if (!set) return [];
+  return exercises.filter((ex) => set.exerciseIds.includes(ex.id));
+};
