@@ -1,12 +1,12 @@
 import { Exercise } from './types';
 
 export const exerciseImages: Record<string, any> = {
-  'iron-bridge': require('../assets/images/1-iron-bridge.jpg'),
-  'wall-sit': require('../assets/images/2-wall-set.jpg'),
-  'bear-crawl-hold': require('../assets/images/3-bear-crawl.jpg'),
-  'horse-stance': require('../assets/images/4-horse-stance.jpg'),
-  'hollow-body-hold': require('../assets/images/5-hollow-body.jpg'),
-  'bottom-push-up-hold': require('../assets/images/6-bottom-push-up.jpg'),
+  'iron-bridge': require('../assets/images/1-iron-bridge.webp'),
+  'wall-sit': require('../assets/images/2-wall-set.webp'),
+  'bear-crawl-hold': require('../assets/images/3-bear-crawl.webp'),
+  'horse-stance': require('../assets/images/4-horse-stance.webp'),
+  'hollow-body-hold': require('../assets/images/5-hollow-body.webp'),
+  'bottom-push-up-hold': require('../assets/images/6-bottom-push-up.webp'),
 };
 
 export const exercises: Exercise[] = [
