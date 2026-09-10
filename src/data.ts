@@ -755,8 +755,16 @@ export const exercises: Exercise[] = [
   },
 ];
 
-export const getExercisesForSet = (setId: string): Exercise[] => {
-  const set = practiceSets.find((s) => s.id === setId);
+export const getExercisesForSet = (
+  setId: string,
+  customSets: PracticeSet[] = []
+): Exercise[] => {
+  const allSets = [...practiceSets, ...customSets];
+  const set = allSets.find((s) => s.id === setId);
   if (!set) return [];
-  return exercises.filter((ex) => set.exerciseIds.includes(ex.id));
+  const exerciseMap = new Map(exercises.map((ex) => [ex.id, ex]));
+  return set.exerciseIds
+    .map((id) => exerciseMap.get(id))
+    .filter((ex): ex is Exercise => Boolean(ex));
 };
+

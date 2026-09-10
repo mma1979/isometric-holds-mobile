@@ -24,11 +24,12 @@ import {
   ChevronDown,
   Layers,
   X,
+  Sparkles,
 } from 'lucide-react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { practiceSets, getExercisesForSet } from '../data';
-import { Exercise, LogEntry } from '../types';
-import { useLogs } from '../store';
+import { Exercise, LogEntry, PracticeSet } from '../types';
+import { useLogs, useCustomPractices } from '../store';
 import { speak, stopSpeech, triggerHaptic } from '../audio';
 import ExerciseGraphic from './ExerciseGraphic';
 import { theme } from '../theme';
@@ -47,18 +48,26 @@ export default function PracticeMode({
   const [currentSetId, setCurrentSetId] = useState(practiceSetId);
   const [showSetPicker, setShowSetPicker] = useState(false);
 
+  const { customPractices } = useCustomPractices();
+
+  const allSets = useMemo(
+    () => [...practiceSets, ...customPractices],
+    [customPractices]
+  );
+
   const practiceSet = useMemo(
-    () => practiceSets.find((s) => s.id === currentSetId) || practiceSets[0],
-    [currentSetId]
+    () => allSets.find((s) => s.id === currentSetId) || allSets[0],
+    [allSets, currentSetId]
   );
 
   const setExercises = useMemo(
-    () => getExercisesForSet(practiceSet.id),
-    [practiceSet.id]
+    () => getExercisesForSet(practiceSet.id, customPractices),
+    [practiceSet.id, customPractices]
   );
 
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
-  const activeExercise: Exercise = setExercises[activeExerciseIndex] || setExercises[0];
+  const activeExercise: Exercise | undefined = setExercises[activeExerciseIndex] || setExercises[0];
+
 
   const { addLog, logs } = useLogs();
 
@@ -208,6 +217,25 @@ export default function PracticeMode({
       .toString()
       .padStart(2, '0')}.${tenths}`;
   };
+
+  if (setExercises.length === 0 || !activeExercise) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+            <ArrowLeft size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{practiceSet.title}</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={{ color: theme.colors.textMuted, textAlign: 'center' }}>
+            No holds found in this practice set.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   const activeHoldLogsToday = todayLogs.filter(
     (l) => l.exerciseId === activeExercise.id
@@ -542,7 +570,7 @@ export default function PracticeMode({
             </View>
 
             <ScrollView style={styles.modalSetsList} showsVerticalScrollIndicator={false}>
-              {practiceSets.map((pSet) => {
+              {allSets.map((pSet) => {
                 const isCurrent = pSet.id === practiceSet.id;
                 return (
                   <TouchableOpacity
@@ -564,6 +592,12 @@ export default function PracticeMode({
                         >
                           {pSet.title}
                         </Text>
+                        {pSet.isCustom && (
+                          <View style={styles.modalCustomBadge}>
+                            <Sparkles size={10} color={theme.colors.primary} />
+                            <Text style={styles.modalCustomBadgeText}>Custom</Text>
+                          </View>
+                        )}
                         <View style={styles.modalSetBadge}>
                           <Text style={styles.modalSetBadgeText}>
                             {pSet.exerciseIds.length} Holds
@@ -1107,5 +1141,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textMuted,
     lineHeight: 16,
+  },
+  modalCustomBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: theme.colors.primaryBg,
+  },
+  modalCustomBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: theme.colors.primary,
   },
 });

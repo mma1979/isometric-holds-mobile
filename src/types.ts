@@ -10,6 +10,8 @@ export interface PracticeSet {
   subtitle?: string;
   description: string;
   exerciseIds: string[];
+  isCustom?: boolean;
+  createdAt?: string;
 }
 
 export interface Exercise {

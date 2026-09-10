@@ -5,18 +5,29 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { PlayCircle, Play, Timer, Sparkles } from 'lucide-react-native';
-import { exercises, practiceSets } from './src/data';
+import {
+  PlayCircle,
+  Play,
+  Timer,
+  Sparkles,
+  Plus,
+  Edit3,
+  Trash2,
+} from 'lucide-react-native';
+import { exercises, practiceSets, getExercisesForSet } from './src/data';
 import ExerciseDetail from './src/components/ExerciseDetail';
 import DailyAchievement from './src/components/DailyAchievement';
 import SessionConfigurator from './src/components/SessionConfigurator';
 import ActiveSession from './src/components/ActiveSession';
 import PracticeMode from './src/components/PracticeMode';
 import ExerciseGraphic from './src/components/ExerciseGraphic';
-import { SessionConfigItem } from './src/types';
+import CustomPracticeModal from './src/components/CustomPracticeModal';
+import { SessionConfigItem, PracticeSet } from './src/types';
+import { useCustomPractices } from './src/store';
 import { theme } from './src/theme';
 
 export default function App() {
@@ -24,6 +35,15 @@ export default function App() {
   const [activePracticeSetId, setActivePracticeSetId] = useState<string | null>(null);
   const [isConfiguringSession, setIsConfiguringSession] = useState(false);
   const [activeSessionConfig, setActiveSessionConfig] = useState<SessionConfigItem[] | null>(null);
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [editingPractice, setEditingPractice] = useState<PracticeSet | null>(null);
+
+  const {
+    customPractices,
+    addCustomPractice,
+    updateCustomPractice,
+    deleteCustomPractice,
+  } = useCustomPractices();
 
   const selectedExercise = selectedExerciseId
     ? exercises.find((e) => e.id === selectedExerciseId)
@@ -114,11 +134,183 @@ export default function App() {
                     <Timer size={18} color={theme.colors.primary} />
                     <Text style={styles.practiceModeButtonText}>Practice Mode</Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingPractice(null);
+                      setShowCustomModal(true);
+                    }}
+                    style={styles.customHeroButton}
+                    activeOpacity={0.8}
+                  >
+                    <Sparkles size={18} color={theme.colors.primary} />
+                    <Text style={styles.customHeroButtonText}>Create Custom Practice</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
               {/* Daily Achievement Stats */}
               <DailyAchievement />
+
+              {/* My Custom Practices Section */}
+              <View style={styles.customSection}>
+                <View style={styles.setSectionHeader}>
+                  <View style={styles.setInfo}>
+                    <View style={styles.setTitleRow}>
+                      <Text style={styles.setSectionTitle}>My Custom Practices</Text>
+                      {customPractices.length > 0 && (
+                        <View style={styles.customCountBadge}>
+                          <Text style={styles.customCountBadgeText}>
+                            {customPractices.length} {customPractices.length === 1 ? 'Routine' : 'Routines'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.setSectionSubtitle}>
+                      Personalized isometric workouts created with your selected holds
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingPractice(null);
+                      setShowCustomModal(true);
+                    }}
+                    style={styles.createCustomPill}
+                    activeOpacity={0.8}
+                  >
+                    <Plus size={14} color={theme.colors.primary} />
+                    <Text style={styles.createCustomPillText}>New Routine</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {customPractices.length === 0 ? (
+                  <View style={styles.emptyCustomCard}>
+                    <View style={styles.emptyCustomIcon}>
+                      <Sparkles size={24} color={theme.colors.primary} />
+                    </View>
+                    <Text style={styles.emptyCustomTitle}>Build Your Own Routine</Text>
+                    <Text style={styles.emptyCustomSubtitle}>
+                      Select any combination of holds across Shaolin, Core, and Samurai protocols to form a personalized practice session.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.emptyCustomBtn}
+                      onPress={() => {
+                        setEditingPractice(null);
+                        setShowCustomModal(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Plus size={16} color={theme.colors.primaryText} />
+                      <Text style={styles.emptyCustomBtnText}>Create Custom Practice</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.customCardsList}>
+                    {customPractices.map((cSet) => {
+                      const setExercises = getExercisesForSet(cSet.id, customPractices);
+                      return (
+                        <View key={cSet.id} style={styles.customCard}>
+                          <View style={styles.customCardHeader}>
+                            <View style={styles.customCardInfo}>
+                              <View style={styles.customCardTitleRow}>
+                                <Text style={styles.customCardTitle}>{cSet.title}</Text>
+                                <View style={styles.customBadge}>
+                                  <Sparkles size={10} color={theme.colors.primary} />
+                                  <Text style={styles.customBadgeText}>Custom</Text>
+                                </View>
+                              </View>
+                              <Text style={styles.customCardDescription} numberOfLines={2}>
+                                {cSet.description || `${setExercises.length} targeted holds`}
+                              </Text>
+                            </View>
+
+                            <View style={styles.customCardActions}>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  setEditingPractice(cSet);
+                                  setShowCustomModal(true);
+                                }}
+                                style={styles.customActionIconBtn}
+                                activeOpacity={0.7}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              >
+                                <Edit3 size={16} color={theme.colors.textMuted} />
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                onPress={() => {
+                                  Alert.alert(
+                                    'Delete Routine',
+                                    `Are you sure you want to delete "${cSet.title}"?`,
+                                    [
+                                      { text: 'Cancel', style: 'cancel' },
+                                      {
+                                        text: 'Delete',
+                                        style: 'destructive',
+                                        onPress: () => deleteCustomPractice(cSet.id),
+                                      },
+                                    ]
+                                  );
+                                }}
+                                style={styles.customActionIconBtn}
+                                activeOpacity={0.7}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              >
+                                <Trash2 size={16} color={theme.colors.error} />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+
+                          {/* Exercise preview thumbnails */}
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.customThumbnailsScroll}
+                          >
+                            {setExercises.map((ex, idx) => (
+                              <TouchableOpacity
+                                key={ex.id}
+                                onPress={() => setSelectedExerciseId(ex.id)}
+                                style={styles.customThumbItem}
+                                activeOpacity={0.8}
+                              >
+                                <View style={styles.customThumbGraphicWrapper}>
+                                  <ExerciseGraphic exerciseId={ex.id} style={styles.customThumbGraphic} />
+                                  <View style={styles.thumbIndexBadge}>
+                                    <Text style={styles.thumbIndexText}>{idx + 1}</Text>
+                                  </View>
+                                </View>
+                                <Text style={styles.customThumbTitle} numberOfLines={1}>
+                                  {ex.title}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+
+                          {/* Footer with Practice Button */}
+                          <View style={styles.customCardFooter}>
+                            <View style={styles.customCardHoldsCount}>
+                              <Text style={styles.customCardHoldsCountText}>
+                                {setExercises.length} {setExercises.length === 1 ? 'Hold' : 'Holds'}
+                              </Text>
+                            </View>
+
+                            <TouchableOpacity
+                              onPress={() => setActivePracticeSetId(cSet.id)}
+                              style={styles.customPracticeBtn}
+                              activeOpacity={0.85}
+                            >
+                              <Timer size={15} color={theme.colors.primaryText} />
+                              <Text style={styles.customPracticeBtnText}>Start Practice</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
 
               {/* Grouped Practice Sets */}
               <View style={styles.practiceSetsContainer}>
@@ -196,6 +388,26 @@ export default function App() {
             </ScrollView>
           )}
         </View>
+
+        {/* Custom Practice Routine Modal */}
+        <CustomPracticeModal
+          visible={showCustomModal}
+          onClose={() => {
+            setShowCustomModal(false);
+            setEditingPractice(null);
+          }}
+          onSave={(data, existingId) => {
+            if (existingId) {
+              updateCustomPractice(existingId, data);
+            } else {
+              addCustomPractice(data);
+            }
+          }}
+          onDelete={(id) => {
+            deleteCustomPractice(id);
+          }}
+          editingPractice={editingPractice}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -431,5 +643,238 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  customHeroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.cardLight,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    gap: 8,
+    width: '100%',
+  },
+  customHeroButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  customSection: {
+    gap: 14,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  customCountBadge: {
+    backgroundColor: theme.colors.primaryBg,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
+  },
+  customCountBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  createCustomPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.primaryBg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: theme.borderRadius.full,
+  },
+  createCustomPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  emptyCustomCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorderHighlight,
+    borderStyle: 'dashed',
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emptyCustomIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyCustomTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  emptyCustomSubtitle: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 320,
+    marginBottom: 6,
+  },
+  emptyCustomBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  emptyCustomBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: theme.colors.primaryText,
+  },
+  customCardsList: {
+    gap: 14,
+  },
+  customCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: theme.spacing.md,
+    gap: 12,
+  },
+  customCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  customCardInfo: {
+    flex: 1,
+    gap: 4,
+    paddingRight: 8,
+  },
+  customCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  customCardTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  customBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primaryBg,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
+  },
+  customBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  customCardDescription: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    lineHeight: 16,
+  },
+  customCardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  customActionIconBtn: {
+    padding: 8,
+    borderRadius: theme.borderRadius.sm,
+    backgroundColor: theme.colors.cardLight,
+  },
+  customThumbnailsScroll: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  customThumbItem: {
+    width: 80,
+    alignItems: 'center',
+    gap: 4,
+  },
+  customThumbGraphicWrapper: {
+    width: 80,
+    height: 54,
+    borderRadius: theme.borderRadius.sm,
+    overflow: 'hidden',
+    backgroundColor: theme.colors.cardLight,
+    position: 'relative',
+  },
+  customThumbGraphic: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbIndexBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbIndexText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: theme.colors.primaryText,
+  },
+  customThumbTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+  },
+  customCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.cardBorder,
+  },
+  customCardHoldsCount: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.borderRadius.sm,
+    backgroundColor: theme.colors.cardLight,
+  },
+  customCardHoldsCountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+  },
+  customPracticeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
+  },
+  customPracticeBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: theme.colors.primaryText,
   },
 });
