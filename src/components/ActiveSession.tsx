@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  BackHandler,
+  Alert,
 } from 'react-native';
 import {
   Play,
@@ -118,6 +120,32 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
       stopSpeech();
     };
   }, []);
+
+  // Handle Android back button press
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (isFinished) {
+        onComplete();
+      } else {
+        Alert.alert(
+          'End Session',
+          'Are you sure you want to end your current workout session?',
+          [
+            { text: 'Continue Workout', style: 'cancel' },
+            { text: 'End Session', style: 'destructive', onPress: onCancel },
+          ]
+        );
+      }
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress
+    );
+
+    return () => subscription.remove();
+  }, [isFinished, onComplete, onCancel]);
 
   // Prevent screen lock while session is active and running
   useEffect(() => {

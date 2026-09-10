@@ -1,6 +1,6 @@
 {
-  "name": "Shaolin Isometric Holds Tracker",
-  "description": "Track your progress with 6 Shaolin isometric hold exercises.",
+  "name": "Isometric Holds",
+  "description": "Track your progress with isometric hold exercises and protocols.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

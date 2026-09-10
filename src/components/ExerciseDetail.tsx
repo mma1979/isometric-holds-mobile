@@ -20,6 +20,7 @@ import {
 } from 'lucide-react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { Exercise, LogEntry } from '../types';
+import { practiceSets } from '../data';
 import { useLogs } from '../store';
 import ProgressChart from './ProgressChart';
 import Stopwatch from './Stopwatch';
@@ -86,7 +87,9 @@ export default function ExerciseDetail({ exercise, onBack }: ExerciseDetailProps
       {/* Title */}
       <View style={styles.header}>
         <Text style={styles.title}>{exercise.title}</Text>
-        <Text style={styles.subtitle}>Shaolin Isometric Hold</Text>
+        <Text style={styles.subtitle}>
+          {practiceSets.find((p) => p.id === exercise.practiceSetId)?.title || 'Isometric Hold Protocol'}
+        </Text>
       </View>
 
       {/* Media / Video Card */}

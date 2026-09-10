@@ -7,6 +7,8 @@ import {
   ScrollView,
   Animated,
   Modal,
+  BackHandler,
+  Alert,
 } from 'react-native';
 import {
   ArrowLeft,
@@ -90,6 +92,36 @@ export default function PracticeMode({
       stopSpeech();
     };
   }, []);
+
+  // Handle Android back button press
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (showSetPicker) {
+        setShowSetPicker(false);
+        return true;
+      }
+      if (isRunning) {
+        Alert.alert(
+          'Exit Practice Mode',
+          'A practice timer is currently running. Are you sure you want to exit?',
+          [
+            { text: 'Continue Practice', style: 'cancel' },
+            { text: 'Exit', style: 'destructive', onPress: onBack },
+          ]
+        );
+        return true;
+      }
+      onBack();
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress
+    );
+
+    return () => subscription.remove();
+  }, [showSetPicker, isRunning, onBack]);
 
   // Timer interval handling
   useEffect(() => {
