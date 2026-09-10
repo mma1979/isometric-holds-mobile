@@ -90,10 +90,10 @@ export default function App() {
             >
               {/* Hero Banner */}
               <View style={styles.hero}>
-                <Text style={styles.heroTitle}>Shaolin Isometric Holds</Text>
+                <Text style={styles.heroTitle}>Isometric Holds & Protocols</Text>
                 <Text style={styles.heroSubtitle}>
-                  No weights. No movement. Just pure strength. Track your progression through
-                  ancient isometric hold techniques.
+                  No weights. No movement. Just pure strength and alignment. Track your
+                  progression across {practiceSets.length} specialized isometric protocols.
                 </Text>
 
                 <View style={styles.heroActionsRow}>

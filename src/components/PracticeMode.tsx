@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  Modal,
 } from 'react-native';
 import {
   ArrowLeft,
@@ -20,6 +21,9 @@ import {
   Check,
   Flame,
   Clock,
+  ChevronDown,
+  Layers,
+  X,
 } from 'lucide-react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { practiceSets, getExercisesForSet } from '../data';
@@ -40,9 +44,12 @@ export default function PracticeMode({
   onBack,
   onOpenExerciseDetail,
 }: PracticeModeProps) {
+  const [currentSetId, setCurrentSetId] = useState(practiceSetId);
+  const [showSetPicker, setShowSetPicker] = useState(false);
+
   const practiceSet = useMemo(
-    () => practiceSets.find((s) => s.id === practiceSetId) || practiceSets[0],
-    [practiceSetId]
+    () => practiceSets.find((s) => s.id === currentSetId) || practiceSets[0],
+    [currentSetId]
   );
 
   const setExercises = useMemo(
@@ -115,6 +122,19 @@ export default function PracticeMode({
       }
     };
   }, [isRunning, pulseAnim]);
+
+  const handleSwitchSet = (newSetId: string) => {
+    if (newSetId === currentSetId) {
+      setShowSetPicker(false);
+      return;
+    }
+    setIsRunning(false);
+    setElapsedMs(0);
+    setCurrentSet(1);
+    setActiveExerciseIndex(0);
+    setCurrentSetId(newSetId);
+    setShowSetPicker(false);
+  };
 
   // Handle exercise change: pause and reset timer
   const handleSelectExercise = (index: number) => {
@@ -205,10 +225,17 @@ export default function PracticeMode({
           <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <View style={styles.headerTitles}>
-          <Text style={styles.headerSubtitle}>{practiceSet.title}</Text>
+        <TouchableOpacity
+          style={styles.headerTitles}
+          onPress={() => setShowSetPicker(true)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.headerSubtitleRow}>
+            <Text style={styles.headerSubtitle}>{practiceSet.title}</Text>
+            <ChevronDown size={13} color={theme.colors.primary} />
+          </View>
           <Text style={styles.headerTitle}>Practice Mode</Text>
-        </View>
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setSoundEnabled((prev) => !prev)}
@@ -490,6 +517,71 @@ export default function PracticeMode({
           )}
         </View>
       </ScrollView>
+
+      {/* Set Switcher Modal */}
+      <Modal
+        visible={showSetPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSetPicker(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderTitleRow}>
+                <Layers size={18} color={theme.colors.primary} />
+                <Text style={styles.modalTitle}>Choose Practice Group</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSetPicker(false)}
+                style={styles.modalCloseBtn}
+                activeOpacity={0.7}
+              >
+                <X size={18} color={theme.colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalSetsList} showsVerticalScrollIndicator={false}>
+              {practiceSets.map((pSet) => {
+                const isCurrent = pSet.id === practiceSet.id;
+                return (
+                  <TouchableOpacity
+                    key={pSet.id}
+                    onPress={() => handleSwitchSet(pSet.id)}
+                    style={[
+                      styles.modalSetItem,
+                      isCurrent && styles.modalSetItemActive,
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.modalSetItemInfo}>
+                      <View style={styles.modalSetTitleRow}>
+                        <Text
+                          style={[
+                            styles.modalSetTitle,
+                            isCurrent && styles.modalSetTitleActive,
+                          ]}
+                        >
+                          {pSet.title}
+                        </Text>
+                        <View style={styles.modalSetBadge}>
+                          <Text style={styles.modalSetBadgeText}>
+                            {pSet.exerciseIds.length} Holds
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.modalSetSubtitle} numberOfLines={2}>
+                        {pSet.subtitle || pSet.description}
+                      </Text>
+                    </View>
+                    {isCurrent && <Check size={18} color={theme.colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -523,6 +615,11 @@ const styles = StyleSheet.create({
   },
   headerTitles: {
     alignItems: 'center',
+  },
+  headerSubtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   headerSubtitle: {
     fontSize: 12,
@@ -919,5 +1016,96 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: theme.colors.primary,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(3, 7, 18, 0.82)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: theme.colors.card,
+    borderTopLeftRadius: theme.borderRadius.xl,
+    borderTopRightRadius: theme.borderRadius.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    maxHeight: '80%',
+    padding: theme.spacing.md,
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBorder,
+  },
+  modalHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  modalCloseBtn: {
+    padding: 6,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.cardLight,
+  },
+  modalSetsList: {
+    maxHeight: 400,
+  },
+  modalSetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.cardLight,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    marginBottom: 10,
+  },
+  modalSetItemActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryBg,
+  },
+  modalSetItemInfo: {
+    flex: 1,
+    gap: 4,
+    paddingRight: 8,
+  },
+  modalSetTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalSetTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  modalSetTitleActive: {
+    color: theme.colors.primary,
+  },
+  modalSetBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalSetBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+  },
+  modalSetSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    lineHeight: 16,
   },
 });
