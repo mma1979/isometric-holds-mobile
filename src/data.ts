@@ -1,12 +1,12 @@
 import { Exercise, PracticeSet } from './types';
 
 export const exerciseImages: Record<string, any> = {
-  'iron-bridge': require('../assets/images/1-iron-bridge.webp'),
-  'wall-sit': require('../assets/images/2-wall-set.webp'),
-  'bear-crawl-hold': require('../assets/images/3-bear-crawl.webp'),
-  'horse-stance': require('../assets/images/4-horse-stance.webp'),
-  'hollow-body-hold': require('../assets/images/5-hollow-body.webp'),
-  'bottom-push-up-hold': require('../assets/images/6-bottom-push-up.webp'),
+  'iron-bridge': require('../assets/images/shaolen/1-iron-bridge.webp'),
+  'wall-sit': require('../assets/images/shaolen/2-wall-set.webp'),
+  'bear-crawl-hold': require('../assets/images/shaolen/3-bear-crawl.webp'),
+  'horse-stance': require('../assets/images/shaolen/4-horse-stance.webp'),
+  'hollow-body-hold': require('../assets/images/shaolen/5-hollow-body.webp'),
+  'bottom-push-up-hold': require('../assets/images/shaolen/6-bottom-push-up.webp'),
 };
 
 export const practiceSets: PracticeSet[] = [
