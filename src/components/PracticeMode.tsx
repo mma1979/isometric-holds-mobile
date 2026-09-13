@@ -32,7 +32,18 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { practiceSets, getExercisesForSet } from '../data';
 import { Exercise, LogEntry, PracticeSet } from '../types';
 import { useLogs, useCustomPractices } from '../store';
-import { speak, stopSpeech, triggerHaptic } from '../audio';
+import {
+  speak,
+  stopSpeech,
+  triggerHaptic,
+  playTransition,
+  playCountdown,
+  playCountdownGo,
+  playFocusPulse,
+  playSessionEnd,
+  preloadSounds,
+  stopAllAudio,
+} from '../audio';
 import ExerciseGraphic from './ExerciseGraphic';
 import { theme } from '../theme';
 
@@ -83,13 +94,28 @@ export default function PracticeMode({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastTickRef = useRef<number>(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const lastFocusPulseSecRef = useRef<number>(-1);
+  const lastCountdownSecRef = useRef<number>(-1);
+  const targetReachedRef = useRef<boolean>(false);
 
-  // Keep screen awake during practice
+  // Extract target hold time from progression (e.g., '15-30s' or '30s')
+  const targetHoldSeconds = useMemo(() => {
+    if (!activeExercise?.progression?.week1) return 0;
+    const matches = activeExercise.progression.week1.match(/(\d+)\s*s/g);
+    if (matches && matches.length > 0) {
+      const nums = matches.map((m) => parseInt(m.replace(/\D/g, ''), 10));
+      return Math.max(...nums);
+    }
+    return 0;
+  }, [activeExercise]);
+
+  // Keep screen awake during practice and preload sounds
   useEffect(() => {
+    preloadSounds();
     activateKeepAwakeAsync();
     return () => {
       deactivateKeepAwake();
-      stopSpeech();
+      stopAllAudio();
     };
   }, []);
 
@@ -131,7 +157,54 @@ export default function PracticeMode({
         const now = Date.now();
         const delta = now - lastTickRef.current;
         lastTickRef.current = now;
-        setElapsedMs((prev) => prev + delta);
+        setElapsedMs((prev) => {
+          const nextElapsed = prev + delta;
+          const currentSec = Math.floor(nextElapsed / 1000);
+
+          // If target is configured, check countdown in last 3 seconds
+          if (targetHoldSeconds > 3) {
+            const secRemaining = targetHoldSeconds - currentSec;
+            if (
+              secRemaining <= 3 &&
+              secRemaining >= 1 &&
+              lastCountdownSecRef.current !== secRemaining
+            ) {
+              lastCountdownSecRef.current = secRemaining;
+              if (soundEnabled) {
+                playCountdown(secRemaining);
+              }
+            } else if (
+              secRemaining === 0 &&
+              !targetReachedRef.current &&
+              currentSec >= targetHoldSeconds
+            ) {
+              targetReachedRef.current = true;
+              if (soundEnabled) {
+                playCountdownGo();
+              }
+            }
+          }
+
+          // Interval focus pulse every 10s during hold (excluding last 3 seconds of target)
+          if (
+            currentSec > 0 &&
+            currentSec % 10 === 0 &&
+            lastFocusPulseSecRef.current !== currentSec
+          ) {
+            const inCountdown =
+              targetHoldSeconds > 0 &&
+              targetHoldSeconds - currentSec <= 3 &&
+              targetHoldSeconds - currentSec >= 0;
+            if (!inCountdown) {
+              lastFocusPulseSecRef.current = currentSec;
+              if (soundEnabled) {
+                playFocusPulse();
+              }
+            }
+          }
+
+          return nextElapsed;
+        });
       }, 50);
 
       Animated.loop(
@@ -162,7 +235,7 @@ export default function PracticeMode({
         timerRef.current = null;
       }
     };
-  }, [isRunning, pulseAnim]);
+  }, [isRunning, pulseAnim, soundEnabled, targetHoldSeconds]);
 
   const handleSwitchSet = (newSetId: string) => {
     if (newSetId === currentSetId) {
@@ -171,6 +244,9 @@ export default function PracticeMode({
     }
     setIsRunning(false);
     setElapsedMs(0);
+    lastFocusPulseSecRef.current = -1;
+    lastCountdownSecRef.current = -1;
+    targetReachedRef.current = false;
     setCurrentSet(1);
     setActiveExerciseIndex(0);
     setCurrentSetId(newSetId);
@@ -182,6 +258,9 @@ export default function PracticeMode({
     if (index === activeExerciseIndex) return;
     setIsRunning(false);
     setElapsedMs(0);
+    lastFocusPulseSecRef.current = -1;
+    lastCountdownSecRef.current = -1;
+    targetReachedRef.current = false;
     setCurrentSet(1);
     setActiveExerciseIndex(index);
     if (soundEnabled) {
@@ -192,20 +271,35 @@ export default function PracticeMode({
   const handleToggleTimer = () => {
     if (!isRunning) {
       setIsRunning(true);
-      triggerHaptic('hold');
-      if (soundEnabled && elapsedMs === 0) {
-        speak('Hold');
+      if (soundEnabled) {
+        playTransition('hold');
+        if (elapsedMs === 0) {
+          speak('Hold');
+        }
+      } else {
+        triggerHaptic('hold');
       }
     } else {
       setIsRunning(false);
-      triggerHaptic('rest');
+      if (soundEnabled) {
+        playTransition('rest');
+      } else {
+        triggerHaptic('rest');
+      }
     }
   };
 
   const handleResetTimer = () => {
     setIsRunning(false);
     setElapsedMs(0);
-    triggerHaptic('rest');
+    lastFocusPulseSecRef.current = -1;
+    lastCountdownSecRef.current = -1;
+    targetReachedRef.current = false;
+    if (soundEnabled) {
+      playTransition('rest');
+    } else {
+      triggerHaptic('rest');
+    }
   };
 
   const handleLogHold = () => {
@@ -220,9 +314,11 @@ export default function PracticeMode({
     };
 
     addLog(newLog);
-    triggerHaptic('complete');
     if (soundEnabled) {
-      speak(`Logged ${durationSeconds} seconds`);
+      playSessionEnd();
+      setTimeout(() => speak(`Logged ${durationSeconds} seconds`), 400);
+    } else {
+      triggerHaptic('complete');
     }
 
     setLogToast(`Set ${currentSet} saved: ${durationSeconds}s hold`);
@@ -234,6 +330,9 @@ export default function PracticeMode({
     setCurrentSet((prev) => prev + 1);
     setIsRunning(false);
     setElapsedMs(0);
+    lastFocusPulseSecRef.current = -1;
+    lastCountdownSecRef.current = -1;
+    targetReachedRef.current = false;
   };
 
   // Today's logs check

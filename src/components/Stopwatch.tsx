@@ -2,6 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Play, Pause, RotateCcw, CheckCircle2 } from 'lucide-react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import {
+  playTransition,
+  playFocusPulse,
+  playSessionEnd,
+  preloadSounds,
+  stopAllAudio,
+} from '../audio';
 import { theme } from '../theme';
 
 interface StopwatchProps {
@@ -14,6 +21,14 @@ export default function Stopwatch({ onUseTime }: StopwatchProps) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const accumulatedTimeRef = useRef<number>(0);
+  const lastFocusPulseSecRef = useRef<number>(-1);
+
+  useEffect(() => {
+    preloadSounds();
+    return () => {
+      stopAllAudio();
+    };
+  }, []);
 
   useEffect(() => {
     if (isRunning) {
@@ -21,7 +36,18 @@ export default function Stopwatch({ onUseTime }: StopwatchProps) {
       startTimeRef.current = Date.now();
       intervalRef.current = setInterval(() => {
         const elapsed = Date.now() - startTimeRef.current;
-        setTime(accumulatedTimeRef.current + elapsed);
+        const total = accumulatedTimeRef.current + elapsed;
+        setTime(total);
+
+        const currentSec = Math.floor(total / 1000);
+        if (
+          currentSec > 0 &&
+          currentSec % 10 === 0 &&
+          lastFocusPulseSecRef.current !== currentSec
+        ) {
+          lastFocusPulseSecRef.current = currentSec;
+          playFocusPulse();
+        }
       }, 50);
     } else {
       deactivateKeepAwake('stopwatch');
@@ -41,18 +67,23 @@ export default function Stopwatch({ onUseTime }: StopwatchProps) {
     if (isRunning) {
       accumulatedTimeRef.current = time;
       setIsRunning(false);
+      playTransition('rest');
     } else {
       setIsRunning(true);
+      playTransition('hold');
     }
   };
 
   const resetTimer = () => {
     setIsRunning(false);
     accumulatedTimeRef.current = 0;
+    lastFocusPulseSecRef.current = -1;
     setTime(0);
+    playTransition('rest');
   };
 
   const handleUseTime = () => {
+    playSessionEnd();
     onUseTime(Math.round(time / 1000));
   };
 

@@ -32,6 +32,12 @@ import {
   playSessionStart,
   playTransition,
   playSessionEnd,
+  playCountdown,
+  playCountdownGo,
+  playHalfwayCue,
+  playFocusPulse,
+  preloadSounds,
+  stopAllAudio,
 } from '../audio';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { theme } from '../theme';
@@ -104,20 +110,23 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showVideo, setShowVideo] = useState(false);
 
-  // Timing state
   const currentStep = sequence[stepIndex];
   const [remainingTime, setRemainingTime] = useState(currentStep?.durationMs || 0);
   const endTimeRef = useRef<number>(Date.now() + (currentStep?.durationMs || 0));
   const remainingTimeRef = useRef<number>(currentStep?.durationMs || 0);
   const spokenStepRef = useRef<number>(-1);
+  const lastCountdownSecRef = useRef<number>(-1);
+  const halfwayPlayedRef = useRef<boolean>(false);
+  const lastFocusPulseSecRef = useRef<number>(-1);
 
-  // Play start sound on mount
+  // Preload sounds and play start sound on mount
   useEffect(() => {
+    preloadSounds();
     if (voiceEnabled) {
       playSessionStart();
     }
     return () => {
-      stopSpeech();
+      stopAllAudio();
     };
   }, []);
 
@@ -194,6 +203,9 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
     remainingTimeRef.current = currentStep.durationMs;
     setRemainingTime(currentStep.durationMs);
     endTimeRef.current = Date.now() + currentStep.durationMs;
+    lastCountdownSecRef.current = -1;
+    halfwayPlayedRef.current = false;
+    lastFocusPulseSecRef.current = -1;
   }, [stepIndex, currentStep]);
 
   // Interval loop for the timer
@@ -206,6 +218,46 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
       remainingTimeRef.current = newRemaining;
       setRemainingTime(newRemaining);
 
+      const sec = Math.ceil(newRemaining / 1000);
+
+      // Countdown sounds for last 3 seconds (3, 2, 1)
+      if (newRemaining > 0 && sec <= 3 && sec >= 1 && lastCountdownSecRef.current !== sec) {
+        lastCountdownSecRef.current = sec;
+        if (voiceEnabled) {
+          playCountdown(sec);
+        }
+      }
+
+      // Halfway cue during holds (for holds >= 10s)
+      if (
+        currentStep.type === 'hold' &&
+        currentStep.durationMs >= 10000 &&
+        !halfwayPlayedRef.current
+      ) {
+        const halfMs = currentStep.durationMs / 2;
+        if (newRemaining <= halfMs && newRemaining > halfMs - 1000) {
+          halfwayPlayedRef.current = true;
+          if (voiceEnabled) {
+            playHalfwayCue();
+          }
+        }
+      }
+
+      // Periodic focus pulse every 10s during hold (excluding last 3 seconds)
+      if (currentStep.type === 'hold' && sec > 3) {
+        const elapsedSec = Math.floor((currentStep.durationMs - newRemaining) / 1000);
+        if (
+          elapsedSec > 0 &&
+          elapsedSec % 10 === 0 &&
+          lastFocusPulseSecRef.current !== elapsedSec
+        ) {
+          lastFocusPulseSecRef.current = elapsedSec;
+          if (voiceEnabled) {
+            playFocusPulse();
+          }
+        }
+      }
+
       if (newRemaining <= 0) {
         clearInterval(interval);
         handleNextStep();
@@ -213,7 +265,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isPaused, isFinished, stepIndex, currentStep]);
+  }, [isPaused, isFinished, stepIndex, currentStep, voiceEnabled]);
 
   const handleNextStep = () => {
     if (!currentStep) return;
