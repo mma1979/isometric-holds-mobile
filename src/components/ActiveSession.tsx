@@ -22,8 +22,8 @@ import {
   Trophy,
 } from 'lucide-react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
-import { exercises } from '../data';
-import { SessionConfigItem, LogEntry } from '../types';
+import { exercises, exerciseHasSides } from '../data';
+import { SessionConfigItem, LogEntry, HoldSide } from '../types';
 import { useLogs } from '../store';
 import ExerciseGraphic from './ExerciseGraphic';
 import {
@@ -57,6 +57,7 @@ interface SessionStep {
   setNum: number;
   totalSets: number;
   configData: SessionConfigItem;
+  side?: HoldSide;
 }
 
 export default function ActiveSession({ config, onComplete, onCancel }: ActiveSessionProps) {
@@ -67,37 +68,114 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
   const sequence = useMemo(() => {
     const steps: SessionStep[] = [];
     config.forEach((cfg, exIdx) => {
+      const exercise = exercises.find((e) => e.id === cfg.exerciseId);
+      const withSides = exerciseHasSides(exercise);
+
       for (let s = 1; s <= cfg.sets; s++) {
-        // Prepare phase (5 seconds)
-        steps.push({
-          type: 'prepare',
-          durationMs: 5000,
-          exerciseId: cfg.exerciseId,
-          setNum: s,
-          totalSets: cfg.sets,
-          configData: cfg,
-        });
+        if (withSides) {
+          // --- RIGHT SIDE ---
+          // Prepare phase (5 seconds)
+          steps.push({
+            type: 'prepare',
+            durationMs: 5000,
+            exerciseId: cfg.exerciseId,
+            setNum: s,
+            totalSets: cfg.sets,
+            configData: cfg,
+            side: 'right',
+          });
 
-        // Hold phase
-        steps.push({
-          type: 'hold',
-          durationMs: cfg.duration * 1000,
-          exerciseId: cfg.exerciseId,
-          setNum: s,
-          totalSets: cfg.sets,
-          configData: cfg,
-        });
+          // Hold phase (Right Side)
+          steps.push({
+            type: 'hold',
+            durationMs: cfg.duration * 1000,
+            exerciseId: cfg.exerciseId,
+            setNum: s,
+            totalSets: cfg.sets,
+            configData: cfg,
+            side: 'right',
+          });
 
-        // Rest phase (except after the very last set of the session)
-        if (s < cfg.sets || exIdx < config.length - 1) {
+          // Rest / Switch sides phase between right and left
+          const switchRest = cfg.rest > 0 ? cfg.rest : 5;
           steps.push({
             type: 'rest',
-            durationMs: cfg.rest * 1000,
+            durationMs: switchRest * 1000,
+            exerciseId: cfg.exerciseId,
+            setNum: s,
+            totalSets: cfg.sets,
+            configData: cfg,
+            side: 'right',
+          });
+
+          // --- LEFT SIDE ---
+          // Prepare phase (5 seconds)
+          steps.push({
+            type: 'prepare',
+            durationMs: 5000,
+            exerciseId: cfg.exerciseId,
+            setNum: s,
+            totalSets: cfg.sets,
+            configData: cfg,
+            side: 'left',
+          });
+
+          // Hold phase (Left Side)
+          steps.push({
+            type: 'hold',
+            durationMs: cfg.duration * 1000,
+            exerciseId: cfg.exerciseId,
+            setNum: s,
+            totalSets: cfg.sets,
+            configData: cfg,
+            side: 'left',
+          });
+
+          // Rest phase after left side (except after the very last set of the session)
+          if (s < cfg.sets || exIdx < config.length - 1) {
+            steps.push({
+              type: 'rest',
+              durationMs: cfg.rest * 1000,
+              exerciseId: cfg.exerciseId,
+              setNum: s,
+              totalSets: cfg.sets,
+              configData: cfg,
+              side: 'left',
+            });
+          }
+        } else {
+          // Bilateral Exercise
+          // Prepare phase (5 seconds)
+          steps.push({
+            type: 'prepare',
+            durationMs: 5000,
             exerciseId: cfg.exerciseId,
             setNum: s,
             totalSets: cfg.sets,
             configData: cfg,
           });
+
+          // Hold phase
+          steps.push({
+            type: 'hold',
+            durationMs: cfg.duration * 1000,
+            exerciseId: cfg.exerciseId,
+            setNum: s,
+            totalSets: cfg.sets,
+            configData: cfg,
+          });
+
+          // Rest phase (except after the very last set of the session)
+          if (s < cfg.sets || exIdx < config.length - 1) {
+            steps.push({
+              type: 'rest',
+              durationMs: cfg.rest * 1000,
+              exerciseId: cfg.exerciseId,
+              setNum: s,
+              totalSets: cfg.sets,
+              configData: cfg,
+            });
+          }
         }
       }
     });
@@ -179,13 +257,27 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
     spokenStepRef.current = stepIndex;
 
     const exercise = exercises.find((e) => e.id === currentStep.exerciseId);
+    const sideLabel = currentStep.side ? (currentStep.side === 'right' ? 'Right side' : 'Left side') : '';
 
     if (currentStep.type === 'prepare') {
-      speak(`Get ready for ${exercise?.title}. Set ${currentStep.setNum} of ${currentStep.totalSets}.`);
+      if (currentStep.side) {
+        speak(`Get ready for ${exercise?.title}, ${sideLabel}. Set ${currentStep.setNum} of ${currentStep.totalSets}.`);
+      } else {
+        speak(`Get ready for ${exercise?.title}. Set ${currentStep.setNum} of ${currentStep.totalSets}.`);
+      }
     } else if (currentStep.type === 'hold') {
-      speak(`Hold for ${currentStep.configData.duration} seconds.`);
+      if (currentStep.side) {
+        speak(`Hold ${sideLabel} for ${currentStep.configData.duration} seconds.`);
+      } else {
+        speak(`Hold for ${currentStep.configData.duration} seconds.`);
+      }
     } else if (currentStep.type === 'rest') {
-      speak(`Rest for ${currentStep.configData.rest} seconds.`);
+      if (currentStep.side === 'right') {
+        const restSec = currentStep.configData.rest > 0 ? currentStep.configData.rest : 5;
+        speak(`Rest for ${restSec} seconds. Switch to left side.`);
+      } else {
+        speak(`Rest for ${currentStep.configData.rest} seconds.`);
+      }
     }
   }, [stepIndex, currentStep, isFinished, voiceEnabled]);
 
@@ -271,7 +363,13 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
     if (!currentStep) return;
 
     // Log the exercise if we just finished its final HOLD set
-    if (currentStep.type === 'hold' && currentStep.setNum === currentStep.totalSets) {
+    // For bilateral: final set. For unilateral: final set on left side.
+    const isFinalHoldOfExercise =
+      currentStep.type === 'hold' &&
+      currentStep.setNum === currentStep.totalSets &&
+      (!currentStep.side || currentStep.side === 'left');
+
+    if (isFinalHoldOfExercise) {
       const newEntry: LogEntry = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         exerciseId: currentStep.exerciseId,
@@ -307,8 +405,16 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
   };
 
   if (isFinished) {
-    const totalTimeHeld = config.reduce((acc, curr) => acc + curr.sets * curr.duration, 0);
-    const totalRestTime = config.reduce((acc, curr) => acc + curr.sets * curr.rest, 0);
+    const totalTimeHeld = config.reduce((acc, curr) => {
+      const ex = exercises.find((e) => e.id === curr.exerciseId);
+      const mult = exerciseHasSides(ex) ? 2 : 1;
+      return acc + curr.sets * curr.duration * mult;
+    }, 0);
+    const totalRestTime = config.reduce((acc, curr) => {
+      const ex = exercises.find((e) => e.id === curr.exerciseId);
+      const mult = exerciseHasSides(ex) ? 2 : 1;
+      return acc + curr.sets * curr.rest * mult;
+    }, 0);
     const caloriesBurned = Math.round((totalTimeHeld / 60) * 5 + (totalRestTime / 60) * 1.5);
 
     // Find personal bests BEFORE this session started
@@ -416,17 +522,21 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
     phaseColor = theme.colors.primary;
     phaseBg = theme.colors.primaryBg;
     phaseBorder = theme.colors.primary;
-    phaseLabel = 'Get Ready';
+    phaseLabel = currentStep.side
+      ? `Get Ready (${currentStep.side === 'right' ? 'Right' : 'Left'})`
+      : 'Get Ready';
   } else if (currentStep.type === 'hold') {
     phaseColor = theme.colors.success;
     phaseBg = theme.colors.successBg;
     phaseBorder = theme.colors.success;
-    phaseLabel = 'Hold!';
+    phaseLabel = currentStep.side
+      ? `Hold (${currentStep.side === 'right' ? 'Right' : 'Left'})!`
+      : 'Hold!';
   } else if (currentStep.type === 'rest') {
     phaseColor = theme.colors.info;
     phaseBg = theme.colors.infoBg;
     phaseBorder = theme.colors.info;
-    phaseLabel = 'Rest';
+    phaseLabel = currentStep.side === 'right' ? 'Switch Sides' : 'Rest';
   }
 
   return (
@@ -482,7 +592,12 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             />
             {currentStep.type === 'rest' && (
               <View style={styles.restOverlay}>
-                <Text style={styles.restOverlayText}>Resting...</Text>
+                <Text style={styles.restOverlayText}>
+                  {currentStep.side === 'right' ? 'Switch Sides' : 'Resting...'}
+                </Text>
+                {currentStep.side === 'right' && (
+                  <Text style={styles.restOverlaySubtext}>Get ready for Left Side</Text>
+                )}
               </View>
             )}
             <TouchableOpacity
@@ -510,12 +625,54 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
               Target: {currentStep.configData.duration}s
             </Text>
           </View>
+          {currentStep.side && (
+            <View style={[styles.badge, styles.sideBadge]}>
+              <Text style={styles.sideBadgeText}>
+                {currentStep.side === 'right' ? '👉 Right Side' : '👈 Left Side'}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
       {/* Active Timer Display */}
       <View style={styles.timerSection}>
         <Text style={[styles.phaseTitle, { color: phaseColor }]}>{phaseLabel}</Text>
+
+        {currentStep.side && (
+          <View style={styles.sideIndicatorBar}>
+            <View
+              style={[
+                styles.sideIndicatorPill,
+                currentStep.side === 'right' && styles.sideIndicatorPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sideIndicatorText,
+                  currentStep.side === 'right' && styles.sideIndicatorTextActive,
+                ]}
+              >
+                RIGHT SIDE
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.sideIndicatorPill,
+                currentStep.side === 'left' && styles.sideIndicatorPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sideIndicatorText,
+                  currentStep.side === 'left' && styles.sideIndicatorTextActive,
+                ]}
+              >
+                LEFT SIDE
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View
           style={[
@@ -659,6 +816,7 @@ const styles = StyleSheet.create({
   badgesRow: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   badge: {
     backgroundColor: theme.colors.cardLight,
@@ -670,6 +828,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: theme.colors.textMuted,
+  },
+  sideBadge: {
+    backgroundColor: theme.colors.primaryBg,
+    borderColor: theme.colors.primary,
+    borderWidth: 1,
+  },
+  sideBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  restOverlaySubtext: {
+    fontSize: 14,
+    color: theme.colors.textMuted,
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  sideIndicatorBar: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: theme.spacing.md,
+  },
+  sideIndicatorPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.cardLight,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+  },
+  sideIndicatorPillActive: {
+    backgroundColor: theme.colors.primaryBg,
+    borderColor: theme.colors.primary,
+  },
+  sideIndicatorText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textSubtle,
+    letterSpacing: 0.5,
+  },
+  sideIndicatorTextActive: {
+    color: theme.colors.primary,
   },
   timerSection: {
     backgroundColor: theme.colors.card,

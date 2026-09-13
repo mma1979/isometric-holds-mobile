@@ -20,7 +20,7 @@ import {
 } from 'lucide-react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { Exercise, LogEntry } from '../types';
-import { practiceSets } from '../data';
+import { practiceSets, exerciseHasSides } from '../data';
 import { useLogs } from '../store';
 import ProgressChart from './ProgressChart';
 import Stopwatch from './Stopwatch';
@@ -86,7 +86,14 @@ export default function ExerciseDetail({ exercise, onBack }: ExerciseDetailProps
 
       {/* Title */}
       <View style={styles.header}>
-        <Text style={styles.title}>{exercise.title}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{exercise.title}</Text>
+          {exerciseHasSides(exercise) && (
+            <View style={styles.sidesBadge}>
+              <Text style={styles.sidesBadgeText}>Both Sides (Right & Left)</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.subtitle}>
           {practiceSets.find((p) => p.id === exercise.practiceSetId)?.title || 'Isometric Hold Protocol'}
         </Text>
@@ -292,10 +299,30 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: theme.spacing.md,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   title: {
     fontSize: 26,
     fontWeight: '800',
     color: theme.colors.text,
+  },
+  sidesBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: theme.colors.primaryBg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  sidesBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   subtitle: {
     fontSize: 14,

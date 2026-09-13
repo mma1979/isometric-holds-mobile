@@ -25,7 +25,7 @@ import {
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import { exercises, practiceSets } from '../data';
+import { exercises, practiceSets, exerciseHasSides } from '../data';
 import { SessionConfigItem } from '../types';
 import { theme } from '../theme';
 
@@ -134,8 +134,16 @@ export default function SessionConfigurator({ onStart, onCancel }: SessionConfig
   const totalSelected = sessionConfig.length;
 
   // Estimate calculations
-  const totalHoldTime = sessionConfig.reduce((acc, curr) => acc + curr.sets * curr.duration, 0);
-  const totalRestTime = sessionConfig.reduce((acc, curr) => acc + curr.sets * curr.rest, 0);
+  const totalHoldTime = sessionConfig.reduce((acc, curr) => {
+    const ex = exercises.find((e) => e.id === curr.exerciseId);
+    const mult = exerciseHasSides(ex) ? 2 : 1;
+    return acc + curr.sets * curr.duration * mult;
+  }, 0);
+  const totalRestTime = sessionConfig.reduce((acc, curr) => {
+    const ex = exercises.find((e) => e.id === curr.exerciseId);
+    const mult = exerciseHasSides(ex) ? 2 : 1;
+    return acc + curr.sets * curr.rest * mult;
+  }, 0);
   const estimatedCalories = Math.round((totalHoldTime / 60) * 5 + (totalRestTime / 60) * 1.5);
   const totalSessionMinutes = Math.ceil((totalHoldTime + totalRestTime) / 60);
 
@@ -264,15 +272,22 @@ export default function SessionConfigurator({ onStart, onCancel }: SessionConfig
                               {isSelected && <Check size={14} color={theme.colors.primaryText} />}
                             </View>
 
-                            <Text
-                              style={[
-                                styles.exerciseTitle,
-                                isSelected && styles.exerciseTitleSelected,
-                              ]}
-                            >
-                              <Text style={styles.exerciseIndex}>{idx + 1}. </Text>
-                              {exercise.title}
-                            </Text>
+                            <View style={styles.cardTitleInfo}>
+                              <Text
+                                style={[
+                                  styles.exerciseTitle,
+                                  isSelected && styles.exerciseTitleSelected,
+                                ]}
+                              >
+                                <Text style={styles.exerciseIndex}>{idx + 1}. </Text>
+                                {exercise.title}
+                              </Text>
+                              {exerciseHasSides(exercise) && (
+                                <View style={styles.bothSidesBadge}>
+                                  <Text style={styles.bothSidesBadgeText}>2 Sides (R & L)</Text>
+                                </View>
+                              )}
+                            </View>
                           </TouchableOpacity>
 
                           {isSelected && (
@@ -672,6 +687,27 @@ const styles = StyleSheet.create({
   checkboxSelected: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
+  },
+  cardTitleInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  bothSidesBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.sm,
+    backgroundColor: theme.colors.primaryBg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  bothSidesBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   exerciseTitle: {
     fontSize: 16,

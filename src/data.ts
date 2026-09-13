@@ -283,6 +283,7 @@ export const exercises: Exercise[] = [
       week3: '30-45 sec (each side), 3 sets',
     },
     videoId: 'K2VljzCC16g',
+    hasSides: true,
   },
   {
     id: 'core-hollow-body-hold',
@@ -321,6 +322,7 @@ export const exercises: Exercise[] = [
       week3: '30-45 sec (each side), 3 sets',
     },
     videoId: 'wiFNA3sqjCA',
+    hasSides: true,
   },
   {
     id: 'core-bear-plank-hold',
@@ -359,6 +361,7 @@ export const exercises: Exercise[] = [
       week3: '30-45 sec (each side), 3 sets',
     },
     videoId: 'g_BYB0R-4Ws',
+    hasSides: true,
   },
   {
     id: 'core-single-leg-lift-hold',
@@ -378,6 +381,7 @@ export const exercises: Exercise[] = [
       week3: '30-45 sec (each side), 3 sets',
     },
     videoId: 'l4kQd9eWcl8',
+    hasSides: true,
   },
   {
     id: 'core-chaturanga-hold',
@@ -539,6 +543,7 @@ export const exercises: Exercise[] = [
       week3: '30-45 sec (each side), 3 sets',
     },
     videoId: '0_P6l02t9e4',
+    hasSides: true,
   },
   {
     id: 'hold-heel-raise-hang',
@@ -714,6 +719,7 @@ export const exercises: Exercise[] = [
       week3: '35-45 sec (each side), 3 sets',
     },
     videoId: '0_P6l02t9e4',
+    hasSides: true,
   },
   {
     id: 'samurai-hollow-body',
@@ -766,5 +772,23 @@ export const getExercisesForSet = (
   return set.exerciseIds
     .map((id) => exerciseMap.get(id))
     .filter((ex): ex is Exercise => Boolean(ex));
+};
+
+/**
+ * Checks if an exercise has changeable sides (Right and Left).
+ * Scans exercise text (steps, progression, subtitle) and checks explicit hasSides flag.
+ */
+export const exerciseHasSides = (exercise?: Exercise | null): boolean => {
+  if (!exercise) return false;
+  if (typeof exercise.hasSides === 'boolean') return exercise.hasSides;
+  const text = `${(exercise.steps || []).join(' ')} ${Object.values(exercise.progression || {}).join(' ')} ${exercise.subtitle || ''}`.toLowerCase();
+  return (
+    text.includes('each side') ||
+    text.includes('both sides') ||
+    text.includes('switch sides') ||
+    text.includes('switch legs') ||
+    text.includes('opposite leg') ||
+    text.includes('each leg')
+  );
 };
 

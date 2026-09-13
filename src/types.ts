@@ -14,6 +14,8 @@ export interface PracticeSet {
   createdAt?: string;
 }
 
+export type HoldSide = 'right' | 'left';
+
 export interface Exercise {
   id: string;
   title: string;
@@ -23,6 +25,7 @@ export interface Exercise {
   progression: Progression;
   videoId: string;
   imageFallback?: string;
+  hasSides?: boolean;
 }
 
 export interface SessionConfigItem {

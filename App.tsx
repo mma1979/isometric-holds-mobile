@@ -29,7 +29,7 @@ import {
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import { exercises, practiceSets, getExercisesForSet } from './src/data';
+import { exercises, practiceSets, getExercisesForSet, exerciseHasSides } from './src/data';
 import ExerciseDetail from './src/components/ExerciseDetail';
 import AboutScreen from './src/components/AboutScreen';
 import DailyAchievement from './src/components/DailyAchievement';
@@ -487,8 +487,15 @@ export default function App() {
 
                                 <View style={styles.cardBottomRow}>
                                   <View style={styles.titleInfo}>
-                                    <View style={styles.numberBadge}>
-                                      <Text style={styles.numberText}>{idx + 1}</Text>
+                                    <View style={styles.cardHeaderRow}>
+                                      <View style={styles.numberBadge}>
+                                        <Text style={styles.numberText}>{idx + 1}</Text>
+                                      </View>
+                                      {exerciseHasSides(exercise) && (
+                                        <View style={styles.cardSidesBadge}>
+                                          <Text style={styles.cardSidesBadgeText}>2 Sides</Text>
+                                        </View>
+                                      )}
                                     </View>
                                     <Text style={styles.cardExerciseTitle}>
                                       {exercise.title}
@@ -806,6 +813,24 @@ const styles = StyleSheet.create({
   titleInfo: {
     flex: 1,
     gap: 4,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardSidesBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: theme.borderRadius.sm,
+    backgroundColor: theme.colors.primaryBg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  cardSidesBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: theme.colors.primary,
   },
   numberBadge: {
     width: 20,

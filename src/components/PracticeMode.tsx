@@ -29,8 +29,8 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { practiceSets, getExercisesForSet } from '../data';
-import { Exercise, LogEntry, PracticeSet } from '../types';
+import { practiceSets, getExercisesForSet, exerciseHasSides } from '../data';
+import { Exercise, LogEntry, PracticeSet, HoldSide } from '../types';
 import { useLogs, useCustomPractices } from '../store';
 import {
   speak,
@@ -88,6 +88,7 @@ export default function PracticeMode({
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
+  const [currentSide, setCurrentSide] = useState<HoldSide>('right');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [logToast, setLogToast] = useState<string | null>(null);
 
@@ -248,6 +249,7 @@ export default function PracticeMode({
     lastCountdownSecRef.current = -1;
     targetReachedRef.current = false;
     setCurrentSet(1);
+    setCurrentSide('right');
     setActiveExerciseIndex(0);
     setCurrentSetId(newSetId);
     setShowSetPicker(false);
@@ -262,6 +264,7 @@ export default function PracticeMode({
     lastCountdownSecRef.current = -1;
     targetReachedRef.current = false;
     setCurrentSet(1);
+    setCurrentSide('right');
     setActiveExerciseIndex(index);
     if (soundEnabled) {
       speak(setExercises[index].title);
@@ -274,7 +277,11 @@ export default function PracticeMode({
       if (soundEnabled) {
         playTransition('hold');
         if (elapsedMs === 0) {
-          speak('Hold');
+          if (exerciseHasSides(activeExercise)) {
+            speak(`Hold ${currentSide === 'right' ? 'Right side' : 'Left side'}`);
+          } else {
+            speak('Hold');
+          }
         }
       } else {
         triggerHaptic('hold');
@@ -314,20 +321,40 @@ export default function PracticeMode({
     };
 
     addLog(newLog);
+    const withSides = exerciseHasSides(activeExercise);
+    const sideName = currentSide === 'right' ? 'Right side' : 'Left side';
+
     if (soundEnabled) {
       playSessionEnd();
-      setTimeout(() => speak(`Logged ${durationSeconds} seconds`), 400);
+      const speechText = withSides
+        ? `Logged ${durationSeconds} seconds, ${sideName}${currentSide === 'right' ? '. Switch to left side' : ''}`
+        : `Logged ${durationSeconds} seconds`;
+      setTimeout(() => speak(speechText), 400);
     } else {
       triggerHaptic('complete');
     }
 
-    setLogToast(`Set ${currentSet} saved: ${durationSeconds}s hold`);
+    const toastText = withSides
+      ? `Set ${currentSet} (${currentSide === 'right' ? 'Right' : 'Left'}) saved: ${durationSeconds}s hold`
+      : `Set ${currentSet} saved: ${durationSeconds}s hold`;
+
+    setLogToast(toastText);
     setTimeout(() => {
       setLogToast(null);
     }, 3000);
 
-    // Auto-advance set counter and reset stopwatch for next set
-    setCurrentSet((prev) => prev + 1);
+    // Auto-advance logic: if hold has sides, toggle Right -> Left. When Left is logged, increment set number.
+    if (withSides) {
+      if (currentSide === 'right') {
+        setCurrentSide('left');
+      } else {
+        setCurrentSide('right');
+        setCurrentSet((prev) => prev + 1);
+      }
+    } else {
+      setCurrentSet((prev) => prev + 1);
+    }
+
     setIsRunning(false);
     setElapsedMs(0);
     lastFocusPulseSecRef.current = -1;
@@ -503,6 +530,11 @@ export default function PracticeMode({
                     Target: {activeExercise.progression.week1}
                   </Text>
                 </View>
+                {exerciseHasSides(activeExercise) && (
+                  <View style={styles.sidesBadge}>
+                    <Text style={styles.sidesBadgeText}>Both Sides</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.exerciseName}>{activeExercise.title}</Text>
             </View>
@@ -532,6 +564,56 @@ export default function PracticeMode({
             </View>
           </View>
 
+          {/* Side Selector for unilateral holds */}
+          {exerciseHasSides(activeExercise) && (
+            <View style={styles.sideToggleRow}>
+              <Text style={styles.sideToggleLabel}>Active Side</Text>
+              <View style={styles.sideToggleButtons}>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isRunning) return;
+                    setCurrentSide('right');
+                  }}
+                  style={[
+                    styles.sideChoiceBtn,
+                    currentSide === 'right' && styles.sideChoiceBtnActive,
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.sideChoiceBtnText,
+                      currentSide === 'right' && styles.sideChoiceBtnTextActive,
+                    ]}
+                  >
+                    Right Side
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isRunning) return;
+                    setCurrentSide('left');
+                  }}
+                  style={[
+                    styles.sideChoiceBtn,
+                    currentSide === 'left' && styles.sideChoiceBtnActive,
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.sideChoiceBtnText,
+                      currentSide === 'left' && styles.sideChoiceBtnTextActive,
+                    ]}
+                  >
+                    Left Side
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           {/* Animated Timer Display */}
           <Animated.View
             style={[
@@ -550,9 +632,13 @@ export default function PracticeMode({
             </Text>
             <Text style={styles.timerStatus}>
               {isRunning
-                ? 'HOLDING'
+                ? exerciseHasSides(activeExercise)
+                  ? `HOLDING (${currentSide === 'right' ? 'RIGHT' : 'LEFT'})`
+                  : 'HOLDING'
                 : elapsedMs > 0
                 ? 'PAUSED'
+                : exerciseHasSides(activeExercise)
+                ? `TAP START (${currentSide === 'right' ? 'RIGHT' : 'LEFT'})`
                 : 'TAP START TO HOLD'}
             </Text>
           </Animated.View>
@@ -949,6 +1035,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.primary,
   },
+  sidesBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: theme.colors.primaryBg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  sidesBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
   exerciseName: {
     fontSize: 22,
     fontWeight: '800',
@@ -967,7 +1066,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   setLabel: {
     fontSize: 14,
@@ -990,6 +1089,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: theme.colors.text,
+  },
+  sideToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 16,
+  },
+  sideToggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+  },
+  sideToggleButtons: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.cardLight,
+    borderRadius: theme.borderRadius.full,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+  },
+  sideChoiceBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+  },
+  sideChoiceBtnActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  sideChoiceBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+  },
+  sideChoiceBtnTextActive: {
+    color: theme.colors.primaryText,
   },
   timerRing: {
     width: 220,
