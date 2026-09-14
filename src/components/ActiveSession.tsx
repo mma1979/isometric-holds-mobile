@@ -20,6 +20,9 @@ import {
   Timer,
   Flame,
   Trophy,
+  Check,
+  Dumbbell,
+  ArrowRight,
 } from 'lucide-react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { exercises, exerciseHasSides } from '../data';
@@ -58,6 +61,7 @@ interface SessionStep {
   totalSets: number;
   configData: SessionConfigItem;
   side?: HoldSide;
+  exerciseIndex: number;
 }
 
 export default function ActiveSession({ config, onComplete, onCancel }: ActiveSessionProps) {
@@ -83,6 +87,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             totalSets: cfg.sets,
             configData: cfg,
             side: 'right',
+            exerciseIndex: exIdx,
           });
 
           // Hold phase (Right Side)
@@ -94,6 +99,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             totalSets: cfg.sets,
             configData: cfg,
             side: 'right',
+            exerciseIndex: exIdx,
           });
 
           // Rest / Switch sides phase between right and left
@@ -106,6 +112,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             totalSets: cfg.sets,
             configData: cfg,
             side: 'right',
+            exerciseIndex: exIdx,
           });
 
           // --- LEFT SIDE ---
@@ -118,6 +125,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             totalSets: cfg.sets,
             configData: cfg,
             side: 'left',
+            exerciseIndex: exIdx,
           });
 
           // Hold phase (Left Side)
@@ -129,6 +137,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             totalSets: cfg.sets,
             configData: cfg,
             side: 'left',
+            exerciseIndex: exIdx,
           });
 
           // Rest phase after left side (except after the very last set of the session)
@@ -141,6 +150,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
               totalSets: cfg.sets,
               configData: cfg,
               side: 'left',
+              exerciseIndex: exIdx,
             });
           }
         } else {
@@ -153,6 +163,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             setNum: s,
             totalSets: cfg.sets,
             configData: cfg,
+            exerciseIndex: exIdx,
           });
 
           // Hold phase
@@ -163,6 +174,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             setNum: s,
             totalSets: cfg.sets,
             configData: cfg,
+            exerciseIndex: exIdx,
           });
 
           // Rest phase (except after the very last set of the session)
@@ -174,6 +186,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
               setNum: s,
               totalSets: cfg.sets,
               configData: cfg,
+              exerciseIndex: exIdx,
             });
           }
         }
@@ -196,6 +209,41 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
   const lastCountdownSecRef = useRef<number>(-1);
   const halfwayPlayedRef = useRef<boolean>(false);
   const lastFocusPulseSecRef = useRef<number>(-1);
+  const progressScrollRef = useRef<ScrollView>(null);
+
+  // Auto-scroll timeline to keep current exercise centered
+  useEffect(() => {
+    if (currentStep && progressScrollRef.current) {
+      const itemWidth = 148;
+      progressScrollRef.current.scrollTo({
+        x: Math.max(0, currentStep.exerciseIndex * itemWidth - 24),
+        animated: true,
+      });
+    }
+  }, [currentStep?.exerciseIndex]);
+
+  const handleJumpToExercise = (targetExIdx: number) => {
+    if (!currentStep || targetExIdx === currentStep.exerciseIndex) return;
+    const targetStepIdx = sequence.findIndex((s) => s.exerciseIndex === targetExIdx);
+    if (targetStepIdx === -1) return;
+
+    const targetEx = exercises.find((e) => e.id === config[targetExIdx]?.exerciseId);
+    const targetTitle = targetEx?.title || `Exercise ${targetExIdx + 1}`;
+
+    Alert.alert(
+      'Jump to Exercise',
+      `Switch to ${targetTitle} (Exercise ${targetExIdx + 1} of ${config.length})?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Jump',
+          onPress: () => {
+            setStepIndex(targetStepIdx);
+          },
+        },
+      ]
+    );
+  };
 
   // Preload sounds and play start sound on mount
   useEffect(() => {
@@ -512,6 +560,23 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
   const exercise = exercises.find((e) => e.id === currentStep.exerciseId);
   const seconds = Math.ceil(remainingTime / 1000);
 
+  const totalExercises = config.length;
+  const currentExerciseIndex = currentStep.exerciseIndex;
+  const currentExerciseNumber = currentExerciseIndex + 1;
+
+  const nextConfigItem =
+    currentExerciseIndex + 1 < config.length ? config[currentExerciseIndex + 1] : null;
+  const nextExercise = nextConfigItem
+    ? exercises.find((e) => e.id === nextConfigItem.exerciseId)
+    : null;
+
+  // Calculate overall workout percentage based on completed exercises and current set progress
+  const currentSetProgress = (currentStep.setNum - 1) / Math.max(1, currentStep.totalSets);
+  const overallProgressPct = Math.min(
+    100,
+    Math.round(((currentExerciseIndex + currentSetProgress) / totalExercises) * 100)
+  );
+
   // Dynamic phase styling
   let phaseColor = theme.colors.text;
   let phaseBg = theme.colors.cardLight;
@@ -557,9 +622,11 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
         </TouchableOpacity>
 
         <View style={styles.topRightControls}>
-          <Text style={styles.stepCounter}>
-            Step {stepIndex + 1} of {sequence.length}
-          </Text>
+          <View style={styles.stepBadge}>
+            <Text style={styles.stepBadgeText}>
+              Step {stepIndex + 1} of {sequence.length}
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={() => setVoiceEnabled(!voiceEnabled)}
             style={styles.voiceToggle}
@@ -572,6 +639,117 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             )}
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Exercise Progress Card (Done, Current, Coming) */}
+      <View style={styles.exerciseProgressCard}>
+        <View style={styles.progressHeaderRow}>
+          <View style={styles.exerciseCountGroup}>
+            <View style={styles.exerciseCategoryBadge}>
+              <Dumbbell size={12} color={theme.colors.primary} />
+              <Text style={styles.exerciseCategoryBadgeText}>EXERCISE</Text>
+            </View>
+            <Text style={styles.exerciseProgressText}>
+              {currentExerciseNumber}{' '}
+              <Text style={styles.exerciseProgressTextSubtle}>of {totalExercises}</Text>
+            </Text>
+          </View>
+
+          <View style={styles.progressPctGroup}>
+            <Text style={styles.progressPctValue}>{overallProgressPct}%</Text>
+            <Text style={styles.progressCountsSubtext}>
+              {currentExerciseIndex} done · {totalExercises - currentExerciseNumber} coming
+            </Text>
+          </View>
+        </View>
+
+        {/* Continuous progress bar */}
+        <View style={styles.progressBarTrack}>
+          <View
+            style={[styles.progressBarFill, { width: `${Math.max(4, overallProgressPct)}%` }]}
+          />
+        </View>
+
+        {/* Horizontal Timeline Strip */}
+        <ScrollView
+          ref={progressScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.timelineScroll}
+          style={styles.timelineWrapper}
+        >
+          {config.map((cfg, idx) => {
+            const ex = exercises.find((e) => e.id === cfg.exerciseId);
+            const isDone = idx < currentExerciseIndex;
+            const isCurrent = idx === currentExerciseIndex;
+            const isComing = idx > currentExerciseIndex;
+
+            return (
+              <TouchableOpacity
+                key={`${cfg.exerciseId}-${idx}`}
+                onPress={() => handleJumpToExercise(idx)}
+                activeOpacity={0.8}
+                style={[
+                  styles.timelineItem,
+                  isDone && styles.timelineItemDone,
+                  isCurrent && styles.timelineItemCurrent,
+                  isComing && styles.timelineItemComing,
+                ]}
+              >
+                <View style={styles.timelineItemHeader}>
+                  <View
+                    style={[
+                      styles.timelineBadge,
+                      isDone && styles.timelineBadgeDone,
+                      isCurrent && styles.timelineBadgeCurrent,
+                      isComing && styles.timelineBadgeComing,
+                    ]}
+                  >
+                    {isDone ? (
+                      <Check size={11} color="#ffffff" strokeWidth={3} />
+                    ) : isCurrent ? (
+                      <Play
+                        size={10}
+                        color={theme.colors.primaryText}
+                        fill={theme.colors.primaryText}
+                      />
+                    ) : (
+                      <Text style={styles.timelineBadgeNumber}>{idx + 1}</Text>
+                    )}
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.timelineStatusTag,
+                      isDone && styles.timelineStatusTagDone,
+                      isCurrent && styles.timelineStatusTagCurrent,
+                      isComing && styles.timelineStatusTagComing,
+                    ]}
+                  >
+                    {isDone ? 'DONE' : isCurrent ? 'CURRENT' : 'COMING'}
+                  </Text>
+                </View>
+
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.timelineTitle,
+                    isCurrent && styles.timelineTitleCurrent,
+                    isDone && styles.timelineTitleDone,
+                  ]}
+                >
+                  {ex?.title || `Exercise ${idx + 1}`}
+                </Text>
+
+                <Text style={styles.timelineDetail}>
+                  {isCurrent
+                    ? `Set ${currentStep.setNum} of ${currentStep.totalSets}`
+                    : `${cfg.sets} × ${cfg.duration}s`}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Visual / Media Container */}
@@ -633,6 +811,27 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             </View>
           )}
         </View>
+
+        {/* Next Up / Coming Up Preview */}
+        {nextExercise ? (
+          <View style={styles.nextUpBanner}>
+            <View style={styles.nextUpLeft}>
+              <ArrowRight size={14} color={theme.colors.primary} />
+              <Text style={styles.nextUpTag}>NEXT UP</Text>
+              <Text style={styles.nextUpTitle} numberOfLines={1}>
+                {nextExercise.title}
+              </Text>
+            </View>
+            <Text style={styles.nextUpDetails}>
+              {nextConfigItem?.sets} sets · {nextConfigItem?.duration}s
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.finalExerciseBanner}>
+            <Trophy size={14} color={theme.colors.primary} />
+            <Text style={styles.finalExerciseText}>Final Exercise of this session!</Text>
+          </View>
+        )}
       </View>
 
       {/* Active Timer Display */}
@@ -748,8 +947,221 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: theme.colors.textSubtle,
   },
+  stepBadge: {
+    backgroundColor: theme.colors.cardLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.borderRadius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorderHighlight,
+  },
+  stepBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.textSubtle,
+  },
   voiceToggle: {
     padding: 4,
+  },
+  exerciseProgressCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  progressHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  exerciseCountGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  exerciseCategoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primaryBg,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: theme.borderRadius.sm,
+  },
+  exerciseCategoryBadgeText: {
+    color: theme.colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  exerciseProgressText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  exerciseProgressTextSubtle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textMuted,
+  },
+  progressPctGroup: {
+    alignItems: 'flex-end',
+  },
+  progressPctValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  progressCountsSubtext: {
+    fontSize: 11,
+    color: theme.colors.textSubtle,
+    marginTop: 1,
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: theme.colors.cardLight,
+    borderRadius: theme.borderRadius.full,
+    overflow: 'hidden',
+    marginBottom: theme.spacing.md,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.full,
+  },
+  timelineWrapper: {
+    marginHorizontal: -theme.spacing.sm,
+  },
+  timelineScroll: {
+    paddingHorizontal: theme.spacing.sm,
+    gap: 8,
+  },
+  timelineItem: {
+    width: 136,
+    backgroundColor: theme.colors.cardLight,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorderHighlight,
+    padding: 10,
+  },
+  timelineItemDone: {
+    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+  },
+  timelineItemCurrent: {
+    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+    borderColor: theme.colors.primary,
+  },
+  timelineItemComing: {
+    opacity: 0.75,
+  },
+  timelineItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  timelineBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timelineBadgeDone: {
+    backgroundColor: theme.colors.success,
+  },
+  timelineBadgeCurrent: {
+    backgroundColor: theme.colors.primary,
+  },
+  timelineBadgeComing: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  timelineBadgeNumber: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+  },
+  timelineStatusTag: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  timelineStatusTagDone: {
+    color: theme.colors.success,
+  },
+  timelineStatusTagCurrent: {
+    color: theme.colors.primary,
+  },
+  timelineStatusTagComing: {
+    color: theme.colors.textSubtle,
+  },
+  timelineTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  timelineTitleCurrent: {
+    color: theme.colors.primary,
+  },
+  timelineTitleDone: {
+    color: theme.colors.textMuted,
+  },
+  timelineDetail: {
+    fontSize: 11,
+    color: theme.colors.textSubtle,
+    fontWeight: '500',
+  },
+  nextUpBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.cardBorder,
+  },
+  nextUpLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    marginRight: 8,
+  },
+  nextUpTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: theme.colors.primary,
+    letterSpacing: 0.5,
+  },
+  nextUpTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.text,
+    flexShrink: 1,
+  },
+  nextUpDetails: {
+    fontSize: 11,
+    color: theme.colors.textSubtle,
+    fontWeight: '500',
+  },
+  finalExerciseBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.cardBorder,
+  },
+  finalExerciseText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   mediaContainer: {
     height: 220,
