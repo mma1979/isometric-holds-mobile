@@ -127,45 +127,47 @@ export default function App() {
         <StatusBar style="light" backgroundColor={theme.colors.background} />
 
         {/* Top App Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.brand}
-            onPress={() => {
-              setSelectedExerciseId(null);
-              setActivePracticeSetId(null);
-              setIsConfiguringSession(false);
-              setActiveSessionConfig(null);
-              setShowAbout(false);
-            }}
-            activeOpacity={0.8}
-          >
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoText}>IH</Text>
-            </View>
-            <Text style={styles.brandTitle}>Isometric Holds</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.aboutHeaderBtn, showAbout && styles.aboutHeaderBtnActive]}
-            onPress={() => {
-              if (showAbout) {
-                setShowAbout(false);
-              } else {
+        {!activeSessionConfig && (
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.brand}
+              onPress={() => {
                 setSelectedExerciseId(null);
                 setActivePracticeSetId(null);
                 setIsConfiguringSession(false);
                 setActiveSessionConfig(null);
-                setShowAbout(true);
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <Info size={16} color={showAbout ? theme.colors.primary : theme.colors.textMuted} />
-            <Text style={[styles.aboutHeaderBtnText, showAbout && styles.aboutHeaderBtnTextActive]}>
-              About
-            </Text>
-          </TouchableOpacity>
-        </View>
+                setShowAbout(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.logoBadge}>
+                <Text style={styles.logoText}>IH</Text>
+              </View>
+              <Text style={styles.brandTitle}>Isometric Holds</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.aboutHeaderBtn, showAbout && styles.aboutHeaderBtnActive]}
+              onPress={() => {
+                if (showAbout) {
+                  setShowAbout(false);
+                } else {
+                  setSelectedExerciseId(null);
+                  setActivePracticeSetId(null);
+                  setIsConfiguringSession(false);
+                  setActiveSessionConfig(null);
+                  setShowAbout(true);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Info size={16} color={showAbout ? theme.colors.primary : theme.colors.textMuted} />
+              <Text style={[styles.aboutHeaderBtnText, showAbout && styles.aboutHeaderBtnTextActive]}>
+                About
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Main Content Router */}
         <View style={styles.content}>

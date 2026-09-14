@@ -214,7 +214,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
   // Auto-scroll timeline to keep current exercise centered
   useEffect(() => {
     if (currentStep && progressScrollRef.current) {
-      const itemWidth = 148;
+      const itemWidth = 110;
       progressScrollRef.current.scrollTo({
         x: Math.max(0, currentStep.exerciseIndex * itemWidth - 24),
         animated: true,
@@ -609,80 +609,58 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      bounces={false}
     >
-      {/* Header controls */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={onCancel}
-          style={styles.endButton}
-          activeOpacity={0.7}
-        >
-          <X size={18} color={theme.colors.textMuted} />
-          <Text style={styles.endButtonText}>End Session</Text>
-        </TouchableOpacity>
+      {/* Top Header & Progress */}
+      <View style={styles.headerSection}>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={onCancel}
+            style={styles.endButton}
+            activeOpacity={0.7}
+          >
+            <X size={16} color={theme.colors.textMuted} />
+            <Text style={styles.endButtonText}>End Session</Text>
+          </TouchableOpacity>
 
-        <View style={styles.topRightControls}>
           <View style={styles.stepBadge}>
             <Text style={styles.stepBadgeText}>
-              Step {stepIndex + 1} of {sequence.length}
+              Ex {currentExerciseNumber}/{totalExercises} · Step {stepIndex + 1}/{sequence.length}
             </Text>
           </View>
+
           <TouchableOpacity
             onPress={() => setVoiceEnabled(!voiceEnabled)}
             style={styles.voiceToggle}
             activeOpacity={0.7}
           >
             {voiceEnabled ? (
-              <Volume2 size={20} color={theme.colors.primary} />
+              <Volume2 size={18} color={theme.colors.primary} />
             ) : (
-              <VolumeX size={20} color={theme.colors.textSubtle} />
+              <VolumeX size={18} color={theme.colors.textSubtle} />
             )}
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Exercise Progress Card (Done, Current, Coming) */}
-      <View style={styles.exerciseProgressCard}>
-        <View style={styles.progressHeaderRow}>
-          <View style={styles.exerciseCountGroup}>
-            <View style={styles.exerciseCategoryBadge}>
-              <Dumbbell size={12} color={theme.colors.primary} />
-              <Text style={styles.exerciseCategoryBadgeText}>EXERCISE</Text>
-            </View>
-            <Text style={styles.exerciseProgressText}>
-              {currentExerciseNumber}{' '}
-              <Text style={styles.exerciseProgressTextSubtle}>of {totalExercises}</Text>
-            </Text>
-          </View>
-
-          <View style={styles.progressPctGroup}>
-            <Text style={styles.progressPctValue}>{overallProgressPct}%</Text>
-            <Text style={styles.progressCountsSubtext}>
-              {currentExerciseIndex} done · {totalExercises - currentExerciseNumber} coming
-            </Text>
-          </View>
-        </View>
-
-        {/* Continuous progress bar */}
+        {/* Continuous progress bar track */}
         <View style={styles.progressBarTrack}>
           <View
             style={[styles.progressBarFill, { width: `${Math.max(4, overallProgressPct)}%` }]}
           />
         </View>
 
-        {/* Horizontal Timeline Strip */}
+        {/* Compact Horizontal Timeline Strip */}
         <ScrollView
           ref={progressScrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.timelineScroll}
-          style={styles.timelineWrapper}
+          contentContainerStyle={styles.timelineChipsScroll}
+          style={styles.timelineChipsWrapper}
         >
           {config.map((cfg, idx) => {
             const ex = exercises.find((e) => e.id === cfg.exerciseId);
             const isDone = idx < currentExerciseIndex;
             const isCurrent = idx === currentExerciseIndex;
-            const isComing = idx > currentExerciseIndex;
 
             return (
               <TouchableOpacity
@@ -690,61 +668,31 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
                 onPress={() => handleJumpToExercise(idx)}
                 activeOpacity={0.8}
                 style={[
-                  styles.timelineItem,
-                  isDone && styles.timelineItemDone,
-                  isCurrent && styles.timelineItemCurrent,
-                  isComing && styles.timelineItemComing,
+                  styles.timelineChip,
+                  isDone && styles.timelineChipDone,
+                  isCurrent && styles.timelineChipCurrent,
                 ]}
               >
-                <View style={styles.timelineItemHeader}>
-                  <View
-                    style={[
-                      styles.timelineBadge,
-                      isDone && styles.timelineBadgeDone,
-                      isCurrent && styles.timelineBadgeCurrent,
-                      isComing && styles.timelineBadgeComing,
-                    ]}
-                  >
-                    {isDone ? (
-                      <Check size={11} color="#ffffff" strokeWidth={3} />
-                    ) : isCurrent ? (
-                      <Play
-                        size={10}
-                        color={theme.colors.primaryText}
-                        fill={theme.colors.primaryText}
-                      />
-                    ) : (
-                      <Text style={styles.timelineBadgeNumber}>{idx + 1}</Text>
-                    )}
-                  </View>
-
-                  <Text
-                    style={[
-                      styles.timelineStatusTag,
-                      isDone && styles.timelineStatusTagDone,
-                      isCurrent && styles.timelineStatusTagCurrent,
-                      isComing && styles.timelineStatusTagComing,
-                    ]}
-                  >
-                    {isDone ? 'DONE' : isCurrent ? 'CURRENT' : 'COMING'}
-                  </Text>
-                </View>
-
+                {isDone ? (
+                  <Check size={11} color={theme.colors.success} strokeWidth={3} />
+                ) : isCurrent ? (
+                  <Play
+                    size={9}
+                    color={theme.colors.primaryText}
+                    fill={theme.colors.primaryText}
+                  />
+                ) : (
+                  <Text style={styles.timelineChipIndex}>{idx + 1}</Text>
+                )}
                 <Text
                   numberOfLines={1}
                   style={[
-                    styles.timelineTitle,
-                    isCurrent && styles.timelineTitleCurrent,
-                    isDone && styles.timelineTitleDone,
+                    styles.timelineChipText,
+                    isCurrent && styles.timelineChipTextCurrent,
+                    isDone && styles.timelineChipTextDone,
                   ]}
                 >
                   {ex?.title || `Exercise ${idx + 1}`}
-                </Text>
-
-                <Text style={styles.timelineDetail}>
-                  {isCurrent
-                    ? `Set ${currentStep.setNum} of ${currentStep.totalSets}`
-                    : `${cfg.sets} × ${cfg.duration}s`}
                 </Text>
               </TouchableOpacity>
             );
@@ -752,127 +700,111 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
         </ScrollView>
       </View>
 
-      {/* Visual / Media Container */}
-      <View style={styles.mediaContainer}>
-        {showVideo ? (
-          <View style={styles.videoWrapper}>
-            <YoutubePlayer
-              height={220}
-              play={true}
-              videoId={exercise?.videoId || ''}
-            />
-          </View>
-        ) : (
-          <View style={styles.graphicWrapper}>
-            <ExerciseGraphic
-              exerciseId={exercise?.id || ''}
-              style={styles.graphicImage}
-            />
-            {currentStep.type === 'rest' && (
-              <View style={styles.restOverlay}>
-                <Text style={styles.restOverlayText}>
-                  {currentStep.side === 'right' ? 'Switch Sides' : 'Resting...'}
+      {/* Middle Section: Exercise Info & Media Graphic */}
+      <View style={styles.exerciseCard}>
+        <View style={styles.exerciseHeader}>
+          <View style={styles.exerciseHeaderLeft}>
+            <Text style={styles.exerciseTitle} numberOfLines={1}>
+              {exercise?.title}
+            </Text>
+            <View style={styles.badgesRow}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  Set {currentStep.setNum} of {currentStep.totalSets}
                 </Text>
-                {currentStep.side === 'right' && (
-                  <Text style={styles.restOverlaySubtext}>Get ready for Left Side</Text>
-                )}
               </View>
-            )}
-            <TouchableOpacity
-              onPress={() => setShowVideo(true)}
-              style={styles.videoPlayButton}
-              activeOpacity={0.8}
-            >
-              <Play size={20} color={theme.colors.primaryText} fill={theme.colors.primaryText} />
-            </TouchableOpacity>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  Target: {currentStep.configData.duration}s
+                </Text>
+              </View>
+              {currentStep.side && (
+                <View style={[styles.badge, styles.sideBadge]}>
+                  <Text style={styles.sideBadgeText}>
+                    {currentStep.side === 'right' ? '👉 Right' : '👈 Left'}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
-        )}
+
+          {nextExercise ? (
+            <View style={styles.nextUpCompact}>
+              <Text style={styles.nextUpTag}>NEXT</Text>
+              <Text style={styles.nextUpTitle} numberOfLines={1}>
+                {nextExercise.title}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.finalCompact}>
+              <Trophy size={11} color={theme.colors.primary} />
+              <Text style={styles.finalCompactText}>Final</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Visual / Media Container */}
+        <View style={styles.mediaContainer}>
+          {showVideo ? (
+            <View style={styles.videoWrapper}>
+              <YoutubePlayer
+                height={140}
+                play={true}
+                videoId={exercise?.videoId || ''}
+              />
+            </View>
+          ) : (
+            <View style={styles.graphicWrapper}>
+              <ExerciseGraphic
+                exerciseId={exercise?.id || ''}
+                style={styles.graphicImage}
+              />
+              {currentStep.type === 'rest' && (
+                <View style={styles.restOverlay}>
+                  <Text style={styles.restOverlayText}>
+                    {currentStep.side === 'right' ? 'Switch Sides' : 'Resting...'}
+                  </Text>
+                  {currentStep.side === 'right' && (
+                    <Text style={styles.restOverlaySubtext}>Get ready for Left Side</Text>
+                  )}
+                </View>
+              )}
+              <TouchableOpacity
+                onPress={() => setShowVideo(true)}
+                style={styles.videoPlayButton}
+                activeOpacity={0.8}
+              >
+                <Play size={16} color={theme.colors.primaryText} fill={theme.colors.primaryText} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
 
-      {/* Exercise Info Card */}
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>{exercise?.title}</Text>
-        <View style={styles.badgesRow}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              Set {currentStep.setNum} of {currentStep.totalSets}
-            </Text>
-          </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              Target: {currentStep.configData.duration}s
+      {/* Primary Focus: Active Timer & Controls Display */}
+      <View style={styles.timerSection}>
+        {/* Phase & Side indicator */}
+        <View style={styles.phaseHeaderRow}>
+          <View
+            style={[
+              styles.phasePill,
+              { backgroundColor: phaseBg, borderColor: phaseBorder },
+            ]}
+          >
+            <Text style={[styles.phasePillText, { color: phaseColor }]}>
+              {phaseLabel}
             </Text>
           </View>
           {currentStep.side && (
-            <View style={[styles.badge, styles.sideBadge]}>
-              <Text style={styles.sideBadgeText}>
-                {currentStep.side === 'right' ? '👉 Right Side' : '👈 Left Side'}
+            <View style={styles.sidePill}>
+              <Text style={styles.sidePillText}>
+                {currentStep.side === 'right' ? 'RIGHT SIDE' : 'LEFT SIDE'}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Next Up / Coming Up Preview */}
-        {nextExercise ? (
-          <View style={styles.nextUpBanner}>
-            <View style={styles.nextUpLeft}>
-              <ArrowRight size={14} color={theme.colors.primary} />
-              <Text style={styles.nextUpTag}>NEXT UP</Text>
-              <Text style={styles.nextUpTitle} numberOfLines={1}>
-                {nextExercise.title}
-              </Text>
-            </View>
-            <Text style={styles.nextUpDetails}>
-              {nextConfigItem?.sets} sets · {nextConfigItem?.duration}s
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.finalExerciseBanner}>
-            <Trophy size={14} color={theme.colors.primary} />
-            <Text style={styles.finalExerciseText}>Final Exercise of this session!</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Active Timer Display */}
-      <View style={styles.timerSection}>
-        <Text style={[styles.phaseTitle, { color: phaseColor }]}>{phaseLabel}</Text>
-
-        {currentStep.side && (
-          <View style={styles.sideIndicatorBar}>
-            <View
-              style={[
-                styles.sideIndicatorPill,
-                currentStep.side === 'right' && styles.sideIndicatorPillActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.sideIndicatorText,
-                  currentStep.side === 'right' && styles.sideIndicatorTextActive,
-                ]}
-              >
-                RIGHT SIDE
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.sideIndicatorPill,
-                currentStep.side === 'left' && styles.sideIndicatorPillActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.sideIndicatorText,
-                  currentStep.side === 'left' && styles.sideIndicatorTextActive,
-                ]}
-              >
-                LEFT SIDE
-              </Text>
-            </View>
-          </View>
-        )}
-
+        {/* Circular Timer Display with Large Digits */}
         <View
           style={[
             styles.timerRing,
@@ -882,19 +814,31 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
           <Text style={[styles.timerCountdown, { color: phaseColor }]}>
             {seconds}
           </Text>
+          <Text style={styles.timerSecLabel}>SEC</Text>
         </View>
 
         {/* Action Controls */}
         <View style={styles.timerActions}>
           <TouchableOpacity
             onPress={togglePause}
-            style={[styles.pauseResumeButton, { backgroundColor: theme.colors.cardLight }]}
+            style={[
+              styles.pauseResumeButton,
+              { backgroundColor: isPaused ? theme.colors.primary : theme.colors.cardLight },
+            ]}
             activeOpacity={0.8}
           >
             {isPaused ? (
-              <Play size={32} color={theme.colors.text} fill={theme.colors.text} />
+              <Play
+                size={28}
+                color={isPaused ? theme.colors.primaryText : theme.colors.text}
+                fill={isPaused ? theme.colors.primaryText : theme.colors.text}
+              />
             ) : (
-              <Pause size={32} color={theme.colors.text} fill={theme.colors.text} />
+              <Pause
+                size={28}
+                color={theme.colors.text}
+                fill={theme.colors.text}
+              />
             )}
           </TouchableOpacity>
 
@@ -903,7 +847,7 @@ export default function ActiveSession({ config, onComplete, onCancel }: ActiveSe
             style={styles.skipButton}
             activeOpacity={0.8}
           >
-            <SkipForward size={22} color={theme.colors.textMuted} />
+            <SkipForward size={20} color={theme.colors.textMuted} />
           </TouchableOpacity>
         </View>
       </View>
@@ -917,35 +861,31 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   scrollContent: {
-    padding: theme.spacing.md,
-    paddingBottom: 40,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: Platform.OS === 'android' ? 24 : 16,
+    flexGrow: 1,
+    justifyContent: 'space-between',
+  },
+  headerSection: {
+    marginBottom: 8,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.md,
+    marginBottom: 8,
   },
   endButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: 4,
   },
   endButtonText: {
     color: theme.colors.textMuted,
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  topRightControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  stepCounter: {
     fontSize: 13,
-    fontWeight: '500',
-    color: theme.colors.textSubtle,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   stepBadge: {
     backgroundColor: theme.colors.cardLight,
@@ -957,220 +897,163 @@ const styles = StyleSheet.create({
   },
   stepBadgeText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     color: theme.colors.textSubtle,
   },
   voiceToggle: {
     padding: 4,
   },
-  exerciseProgressCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  progressHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  exerciseCountGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  exerciseCategoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.colors.primaryBg,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: theme.borderRadius.sm,
-  },
-  exerciseCategoryBadgeText: {
-    color: theme.colors.primary,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  exerciseProgressText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.colors.text,
-  },
-  exerciseProgressTextSubtle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.textMuted,
-  },
-  progressPctGroup: {
-    alignItems: 'flex-end',
-  },
-  progressPctValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: theme.colors.primary,
-  },
-  progressCountsSubtext: {
-    fontSize: 11,
-    color: theme.colors.textSubtle,
-    marginTop: 1,
-  },
   progressBarTrack: {
-    height: 6,
+    height: 4,
     backgroundColor: theme.colors.cardLight,
     borderRadius: theme.borderRadius.full,
     overflow: 'hidden',
-    marginBottom: theme.spacing.md,
+    marginBottom: 8,
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.full,
   },
-  timelineWrapper: {
-    marginHorizontal: -theme.spacing.sm,
+  timelineChipsWrapper: {
+    marginBottom: 4,
+    maxHeight: 34,
   },
-  timelineScroll: {
-    paddingHorizontal: theme.spacing.sm,
-    gap: 8,
+  timelineChipsScroll: {
+    gap: 6,
+    alignItems: 'center',
   },
-  timelineItem: {
-    width: 136,
-    backgroundColor: theme.colors.cardLight,
-    borderRadius: theme.borderRadius.md,
+  timelineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorderHighlight,
-    padding: 10,
+    borderColor: theme.colors.cardBorder,
   },
-  timelineItemDone: {
-    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+  timelineChipDone: {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
     borderColor: 'rgba(34, 197, 94, 0.3)',
   },
-  timelineItemCurrent: {
-    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+  timelineChipCurrent: {
+    backgroundColor: 'rgba(234, 179, 8, 0.16)',
     borderColor: theme.colors.primary,
   },
-  timelineItemComing: {
-    opacity: 0.75,
-  },
-  timelineItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  timelineBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineBadgeDone: {
-    backgroundColor: theme.colors.success,
-  },
-  timelineBadgeCurrent: {
-    backgroundColor: theme.colors.primary,
-  },
-  timelineBadgeComing: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  timelineBadgeNumber: {
-    fontSize: 11,
+  timelineChipIndex: {
+    fontSize: 10,
     fontWeight: '700',
     color: theme.colors.textMuted,
   },
-  timelineStatusTag: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  timelineChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+    maxWidth: 130,
   },
-  timelineStatusTagDone: {
+  timelineChipTextDone: {
     color: theme.colors.success,
   },
-  timelineStatusTagCurrent: {
+  timelineChipTextCurrent: {
     color: theme.colors.primary,
-  },
-  timelineStatusTagComing: {
-    color: theme.colors.textSubtle,
-  },
-  timelineTitle: {
-    fontSize: 12,
     fontWeight: '700',
+  },
+  exerciseCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: 10,
+    marginBottom: 8,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    gap: 8,
+  },
+  exerciseHeaderLeft: {
+    flex: 1,
+  },
+  exerciseTitle: {
+    fontSize: 16,
+    fontWeight: '800',
     color: theme.colors.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  timelineTitleCurrent: {
-    color: theme.colors.primary,
+  badgesRow: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
-  timelineTitleDone: {
+  badge: {
+    backgroundColor: theme.colors.cardLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.sm,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '600',
     color: theme.colors.textMuted,
   },
-  timelineDetail: {
+  sideBadge: {
+    backgroundColor: theme.colors.primaryBg,
+    borderColor: theme.colors.primary,
+    borderWidth: 1,
+  },
+  sideBadgeText: {
     fontSize: 11,
-    color: theme.colors.textSubtle,
-    fontWeight: '500',
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
-  nextUpBanner: {
+  nextUpCompact: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: theme.spacing.sm,
-    paddingTop: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.cardBorder,
-  },
-  nextUpLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-    marginRight: 8,
+    gap: 4,
+    backgroundColor: theme.colors.cardLight,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    maxWidth: 125,
   },
   nextUpTag: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: theme.colors.primary,
     letterSpacing: 0.5,
   },
   nextUpTitle: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: theme.colors.textSubtle,
     flexShrink: 1,
   },
-  nextUpDetails: {
-    fontSize: 11,
-    color: theme.colors.textSubtle,
-    fontWeight: '500',
-  },
-  finalExerciseBanner: {
+  finalCompact: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: theme.spacing.sm,
-    paddingTop: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.cardBorder,
+    gap: 4,
+    backgroundColor: theme.colors.primaryBg,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
-  finalExerciseText: {
-    fontSize: 12,
-    fontWeight: '600',
+  finalCompactText: {
+    fontSize: 10,
+    fontWeight: '700',
     color: theme.colors.primary,
   },
   mediaContainer: {
-    height: 220,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    height: 140,
+    backgroundColor: theme.colors.cardLight,
+    borderRadius: theme.borderRadius.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    marginBottom: theme.spacing.md,
+    borderColor: theme.colors.cardBorderHighlight,
   },
   videoWrapper: {
     flex: 1,
@@ -1185,23 +1068,30 @@ const styles = StyleSheet.create({
   },
   restOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(3, 7, 18, 0.7)',
+    backgroundColor: 'rgba(3, 7, 18, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: theme.spacing.xs,
   },
   restOverlayText: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '800',
     letterSpacing: 2,
     color: theme.colors.text,
   },
+  restOverlaySubtext: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    marginTop: 4,
+    fontWeight: '600',
+  },
   videoPlayButton: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    bottom: 8,
+    right: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1211,128 +1101,97 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  infoCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-  },
-  badgesRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  badge: {
-    backgroundColor: theme.colors.cardLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textMuted,
-  },
-  sideBadge: {
-    backgroundColor: theme.colors.primaryBg,
-    borderColor: theme.colors.primary,
-    borderWidth: 1,
-  },
-  sideBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
-  restOverlaySubtext: {
-    fontSize: 14,
-    color: theme.colors.textMuted,
-    marginTop: 6,
-    fontWeight: '600',
-  },
-  sideIndicatorBar: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: theme.spacing.md,
-  },
-  sideIndicatorPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.cardLight,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-  },
-  sideIndicatorPillActive: {
-    backgroundColor: theme.colors.primaryBg,
-    borderColor: theme.colors.primary,
-  },
-  sideIndicatorText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.textSubtle,
-    letterSpacing: 0.5,
-  },
-  sideIndicatorTextActive: {
-    color: theme.colors.primary,
-  },
   timerSection: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    padding: theme.spacing.xl,
+    paddingVertical: 14,
+    paddingHorizontal: theme.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  phaseTitle: {
-    fontSize: 22,
+  phaseHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  phasePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+    borderWidth: 1,
+  },
+  phasePillText: {
+    fontSize: 13,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 3,
-    marginBottom: theme.spacing.lg,
+    letterSpacing: 1.5,
+  },
+  sidePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.cardLight,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorderHighlight,
+  },
+  sidePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    letterSpacing: 0.5,
   },
   timerRing: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 4,
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    borderWidth: 3.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: 10,
   },
   timerCountdown: {
-    fontSize: 72,
+    fontSize: 48,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+    lineHeight: 52,
+  },
+  timerSecLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.textSubtle,
+    letterSpacing: 1,
+    marginTop: -2,
   },
   timerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 24,
+    gap: 18,
   },
   pauseResumeButton: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   skipButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: theme.colors.cardLight,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   summaryContainer: {
     padding: theme.spacing.lg,
