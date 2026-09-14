@@ -7,4 +7,6 @@ echo Using JAVA_HOME=%JAVA_HOME%
 echo Using ANDROID_HOME=%ANDROID_HOME%
 java -version
 
+pushd "%~dp0android"
 call gradlew.bat assembleRelease %*
+popd

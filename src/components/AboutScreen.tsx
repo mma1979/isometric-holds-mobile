@@ -58,7 +58,7 @@ export default function AboutScreen({ onBack }: AboutScreenProps) {
             <Text style={styles.heroLogoText}>IH</Text>
           </View>
           <View style={styles.versionPill}>
-            <Text style={styles.versionText}>v2.2.4 • Production</Text>
+            <Text style={styles.versionText}>v2.3.0 • Production</Text>
           </View>
         </View>
 
