@@ -421,3 +421,52 @@ export const APK_RELEASES = [
     recommended: false,
   },
 ];
+
+export interface AppStoreListing {
+  id: string;
+  name: string;
+  platform: string;
+  label: string;
+  sublabel: string;
+  status: 'Coming Soon' | 'In Review' | 'Available';
+  badge: string;
+  url?: string;
+  icon: 'google-play' | 'apple' | 'huawei';
+}
+
+export const APP_STORES: AppStoreListing[] = [
+  {
+    id: 'google-play',
+    name: 'Google Play',
+    platform: 'Android',
+    label: 'GET IT ON',
+    sublabel: 'Google Play',
+    status: 'Coming Soon',
+    badge: 'In Review',
+    url: '#',
+    icon: 'google-play',
+  },
+  {
+    id: 'apple-app-store',
+    name: 'App Store',
+    platform: 'iOS / iPadOS',
+    label: 'Download on the',
+    sublabel: 'App Store',
+    status: 'Coming Soon',
+    badge: 'In Development',
+    url: '#',
+    icon: 'apple',
+  },
+  {
+    id: 'huawei-appgallery',
+    name: 'Huawei AppGallery',
+    platform: 'HarmonyOS / Android',
+    label: 'EXPLORE IT ON',
+    sublabel: 'AppGallery',
+    status: 'Coming Soon',
+    badge: 'Upcoming',
+    url: '#',
+    icon: 'huawei',
+  },
+];
+

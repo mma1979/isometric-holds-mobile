@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { APK_RELEASES } from '../data/protocols';
+import { StoreBadges } from './StoreBadges';
 import {
   Download,
   ShieldCheck,
@@ -10,6 +11,7 @@ import {
   FileCheck,
   ChevronDown,
   ChevronUp,
+  Store,
 } from 'lucide-react';
 
 export const DownloadSection: React.FC = () => {
@@ -25,7 +27,7 @@ export const DownloadSection: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider">
             <Download size={14} />
-            <span>Direct Android Sideload</span>
+            <span>Direct Android Sideload & Stores</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight">
             Install Isometric Holds on Android
@@ -87,6 +89,26 @@ export const DownloadSection: React.FC = () => {
           ))}
         </div>
 
+        {/* Official App Stores Section (Google, Apple, Huawei) */}
+        <div className="mb-12 bg-gray-950/80 border border-gray-800/80 rounded-3xl p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Store size={20} />
+              </div>
+              <div>
+                <h4 className="text-lg font-bold text-white">App Stores Distribution</h4>
+                <p className="text-xs text-gray-400">Planned & upcoming releases across major mobile app marketplaces</p>
+              </div>
+            </div>
+            <span className="self-start sm:self-auto text-xs px-3 py-1 rounded-full bg-gray-800 text-gray-300 border border-gray-700 font-mono">
+              In Review & Staging
+            </span>
+          </div>
+
+          <StoreBadges />
+        </div>
+
         {/* Trust Badges */}
         <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-12 py-6 border-y border-gray-800/80 text-xs sm:text-sm text-gray-400">
           <div className="flex items-center gap-2">
@@ -105,6 +127,7 @@ export const DownloadSection: React.FC = () => {
 
         {/* Expandable Sideloading Instructions */}
         <div className="mt-12 bg-gray-900/60 border border-gray-800 rounded-3xl p-6 sm:p-8">
+
           <button
             onClick={() => setShowGuide(!showGuide)}
             className="w-full flex items-center justify-between text-left cursor-pointer"

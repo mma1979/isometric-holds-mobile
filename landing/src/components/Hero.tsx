@@ -68,11 +68,20 @@ export const Hero: React.FC = () => {
               </a>
             </div>
 
-            {/* Sideload note */}
-            <p className="text-xs text-gray-400 text-center lg:text-left pt-1">
-              Direct sideload APK. Free & Open, no registration or credit card required.
-            </p>
+            {/* Sideload note & Store mentions */}
+            <div className="pt-1 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-4 text-xs text-gray-400">
+              <span>Direct APK Sideload (v2.3.0)</span>
+              <span className="hidden sm:inline text-gray-600">•</span>
+              <a href="#download" className="text-gray-400 hover:text-amber-400 flex items-center gap-1.5 transition">
+                <span>Coming soon to</span>
+                <strong className="text-gray-300 font-medium">Google Play</strong>,
+                <strong className="text-gray-300 font-medium">App Store</strong> &
+                <strong className="text-gray-300 font-medium">AppGallery</strong>
+                <span className="text-amber-400">→</span>
+              </a>
+            </div>
           </div>
+
 
           {/* Right Column: Live Phone Mockup with floating visual callouts */}
           <div className="lg:col-span-5 relative flex justify-center items-center">
