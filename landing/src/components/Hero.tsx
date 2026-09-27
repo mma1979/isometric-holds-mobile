@@ -16,7 +16,7 @@ export const Hero: React.FC = () => {
             {/* Version & release pill */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold tracking-wide">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <span>v2.3.0 Release • 80% Smaller Footprint (14.5MB)</span>
+              <span>v2.3.1 Release • 80% Smaller Footprint (14.5MB)</span>
             </div>
 
             {/* Main Headline */}
@@ -70,7 +70,7 @@ export const Hero: React.FC = () => {
 
             {/* Sideload note & Store mentions */}
             <div className="pt-1 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-4 text-xs text-gray-400">
-              <span>Direct APK Sideload (v2.3.0)</span>
+              <span>Direct APK Sideload (v2.3.1)</span>
               <span className="hidden sm:inline text-gray-600">•</span>
               <a href="#download" className="text-gray-400 hover:text-amber-400 flex items-center gap-1.5 transition">
                 <span>Coming soon to</span>

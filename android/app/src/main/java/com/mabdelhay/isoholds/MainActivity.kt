@@ -1,4 +1,4 @@
-package com.shaolin.isometricholds
+package com.mabdelhay.isoholds
 
 import android.os.Build
 import android.os.Bundle

@@ -40,7 +40,7 @@ export const Navbar: React.FC = () => {
             <span className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
               Isometric Holds
               <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">
-                v2.3.0
+                v2.3.1
               </span>
             </span>
             <span className="text-xs text-gray-400 hidden sm:inline">Static Strength & Tendon Resilience</span>
@@ -101,7 +101,7 @@ export const Navbar: React.FC = () => {
               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-950 bg-amber-400 hover:bg-amber-300"
             >
               <Download size={16} className="stroke-[2.5]" />
-              <span>Download APK (v2.3.0)</span>
+              <span>Download APK (v2.3.1)</span>
             </a>
           </div>
         </div>

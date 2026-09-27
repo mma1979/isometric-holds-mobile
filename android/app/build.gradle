@@ -88,13 +88,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.shaolin.isometricholds'
+    namespace 'com.mabdelhay.isoholds'
     defaultConfig {
-        applicationId 'com.shaolin.isometricholds'
+        applicationId 'com.mabdelhay.isoholds'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 3
+        versionName "2.3.1"
     }
     signingConfigs {
         debug {

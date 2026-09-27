@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
             </div>
             <div>
               <div className="text-white font-bold text-sm">Isometric Holds</div>
-              <div className="text-gray-500">v2.3.0 Production • Offline First</div>
+              <div className="text-gray-500">v2.3.1 Production • Offline First</div>
             </div>
           </div>
 

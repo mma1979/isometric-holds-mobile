@@ -37,6 +37,6 @@ bun run preview # or npm run preview
 ```
 
 ## Static Assets & APK Sideloads
-- `public/downloads/isometric-holds-v2.3.0-arm64.apk` (14.5 MB - optimized for modern Android)
-- `public/downloads/isometric-holds-v2.3.0-universal.apk` (27.3 MB - universal architecture)
+- `public/downloads/isometric-holds-v2.3.1-arm64.apk` (14.5 MB - optimized for modern Android)
+- `public/downloads/isometric-holds-v2.3.1-universal.apk` (27.3 MB - universal architecture)
 - `public/images/` (Contains exercise demonstration preview images)
