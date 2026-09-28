@@ -308,13 +308,24 @@ export default function AboutScreen({ onBack }: AboutScreenProps) {
 
       {/* Privacy Card */}
       <View style={styles.privacyCard}>
-        <Lock size={18} color={theme.colors.textMuted} />
-        <View style={styles.privacyTextCol}>
-          <Text style={styles.privacyTitle}>100% Offline & Private</Text>
-          <Text style={styles.privacyDesc}>
-            All your training logs, custom routines, and streaks stay exclusively on your device. No cloud sync, no tracking, and no account required.
-          </Text>
+        <View style={styles.privacyContentRow}>
+          <Lock size={18} color={theme.colors.primary} />
+          <View style={styles.privacyTextCol}>
+            <Text style={styles.privacyTitle}>100% Offline & Private</Text>
+            <Text style={styles.privacyDesc}>
+              All your training logs, custom routines, and streaks stay exclusively on your device. No cloud sync, no tracking, and no account required.
+            </Text>
+          </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.privacyPolicyBtn}
+          onPress={() => Linking.openURL('https://mabdelhay.com/isometric-holds/privacy')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.privacyPolicyBtnText}>Read Full Privacy Policy</Text>
+          <ExternalLink size={14} color={theme.colors.primary} />
+        </TouchableOpacity>
       </View>
 
       {/* Footer */}
@@ -645,14 +656,17 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   privacyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    gap: 12,
+  },
+  privacyContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   privacyTextCol: {
     flex: 1,
@@ -667,6 +681,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textMuted,
     lineHeight: 16,
+  },
+  privacyPolicyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(234, 179, 8, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.25)',
+    borderRadius: theme.borderRadius.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  privacyPolicyBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   footer: {
     alignItems: 'center',

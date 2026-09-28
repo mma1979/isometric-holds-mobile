@@ -29,6 +29,7 @@ import {
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { exercises, practiceSets, getExercisesForSet, exerciseHasSides } from './src/data';
 import ExerciseDetail from './src/components/ExerciseDetail';
 import AboutScreen from './src/components/AboutScreen';
@@ -38,9 +39,12 @@ import ActiveSession from './src/components/ActiveSession';
 import PracticeMode from './src/components/PracticeMode';
 import ExerciseGraphic from './src/components/ExerciseGraphic';
 import CustomPracticeModal from './src/components/CustomPracticeModal';
+import PrivacyPolicyModal from './src/components/PrivacyPolicyModal';
 import { SessionConfigItem, PracticeSet } from './src/types';
 import { useCustomPractices } from './src/store';
 import { theme } from './src/theme';
+
+const PRIVACY_POLICY_KEY = '@privacy_policy_accepted_v1';
 
 export default function App() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -50,12 +54,36 @@ export default function App() {
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [editingPractice, setEditingPractice] = useState<PracticeSet | null>(null);
   const [showAbout, setShowAbout] = useState(false);
+  const [showPrivacyPrompt, setShowPrivacyPrompt] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     if (practiceSets.length > 0) {
       return { [practiceSets[0].id]: true };
     }
     return {};
   });
+
+  useEffect(() => {
+    const checkPrivacyStatus = async () => {
+      try {
+        const accepted = await AsyncStorage.getItem(PRIVACY_POLICY_KEY);
+        if (!accepted) {
+          setShowPrivacyPrompt(true);
+        }
+      } catch (e) {
+        console.error('Failed to read privacy acceptance status', e);
+      }
+    };
+    checkPrivacyStatus();
+  }, []);
+
+  const handleAcceptPrivacy = async () => {
+    try {
+      await AsyncStorage.setItem(PRIVACY_POLICY_KEY, new Date().toISOString());
+    } catch (e) {
+      console.error('Failed to save privacy acceptance status', e);
+    }
+    setShowPrivacyPrompt(false);
+  };
 
   const toggleGroup = (groupId: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -78,6 +106,9 @@ export default function App() {
 
   useEffect(() => {
     const handleBackPress = () => {
+      if (showPrivacyPrompt) {
+        return true;
+      }
       if (showCustomModal) {
         setShowCustomModal(false);
         setEditingPractice(null);
@@ -113,6 +144,7 @@ export default function App() {
 
     return () => backHandlerSubscription.remove();
   }, [
+    showPrivacyPrompt,
     showCustomModal,
     showAbout,
     activeSessionConfig,
@@ -561,6 +593,12 @@ export default function App() {
             deleteCustomPractice(id);
           }}
           editingPractice={editingPractice}
+        />
+
+        {/* Privacy Policy First-Launch Prompt */}
+        <PrivacyPolicyModal
+          visible={showPrivacyPrompt}
+          onAccept={handleAcceptPrivacy}
         />
       </SafeAreaView>
     </SafeAreaProvider>
